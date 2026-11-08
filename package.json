@@ -1,0 +1,40 @@
+{
+    "name": "starter-pack",
+    "version": "1.0.0",
+    "description": "my projects starter pack",
+    "main": "./src/index.js",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1",
+        "dev": "tsx watch ./src/index.js",
+        "build": "tsc",
+        "server": "node dist/index.js",
+        "prisma:generate": "prisma generate",
+        "prisma:migrate:dev": "prisma migrate dev",
+        "prisma:migrate:create": "prisma migrate dev --create-only",
+        "prisma:migrate:deploy": "prisma migrate deploy"
+    },
+    "author": "princeguam",
+    "license": "ISC",
+    "type": "module",
+    "dependencies": {
+        "@prisma/client": "^6.11.1",
+        "bcrypt": "^6.0.0",
+        "date-fns": "^4.4.0",
+        "express": "^5.2.1",
+        "express-async-handler": "^1.2.0",
+        "humps": "^2.0.1",
+        "jsonwebtoken": "^9.0.3",
+        "prisma": "^6.11.1"
+    },
+    "devDependencies": {
+        "@types/bcrypt": "^6.0.0",
+        "@types/date-fns": "^2.5.3",
+        "@types/express": "^5.0.6",
+        "@types/humps": "^2.0.6",
+        "@types/jsonwebtoken": "^9.0.10",
+        "@types/node": "^26.6.5",
+        "dotenv": "^18.0.7",
+        "tsx": "^4.23.15",
+        "typescript": "^7.0.2"
+    }
+}

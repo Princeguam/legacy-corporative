@@ -1,0 +1,107 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  Admin
+  Investor
+}
+
+enum AuthType {
+  Api
+  Sms
+  Email
+}
+
+enum TransactionStatus {
+  PENDING // member submitted, waiting for admin
+  CONFIRMED // admin verified the money landed
+  REJECTED // admin couldn't verify it
+}
+
+enum TransactionType {
+  DEPOSIT
+  WITHDRAWAL
+  ADJUSTMENT
+}
+
+model Users {
+  id         Int      @id @default(autoincrement())
+  firstName  String
+  middleName String?
+  lastName   String
+  email      String   @unique
+  phoneNo    String   @unique
+  dob        DateTime
+  address    String
+  password   String
+  state      String?
+  lga        String?
+  gender     String?
+  passport   String?
+  isAdmin    Boolean  @default(false)
+  created    DateTime @default(now())
+  updated    DateTime @updatedAt
+
+  userSessions          UserSessions[]
+  reviewedTransactions  Transactions[] @relation("reviewer")
+  depositedTransactions Transactions[] @relation("depositor")
+}
+
+model UserSessions {
+  id           Int      @id @default(autoincrement())
+  userId       Int
+  refreshToken String
+  resetToken   String
+  expiration   DateTime
+  role         UserRole
+  authType     AuthType @default(Api)
+  created      DateTime @default(now())
+  updated      DateTime @updatedAt
+
+  user Users @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model BankAcconts {
+  id            Int      @id @default(autoincrement())
+  bankName      String
+  accountName   String
+  accountNumber String   @unique
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+
+  transactions Transactions[]
+}
+
+model Transactions {
+  id            Int               @id @default(autoincrement())
+  bankAccountId Int
+  userId        Int
+  status        TransactionStatus @default(PENDING)
+  type          TransactionType
+  amount        BigInt
+  currency      String            @default("NGN")
+  note          String?
+  attachmentUrl String?
+  reviewedById  Int?
+  depositedAt   DateTime?
+  reviewedAt    DateTime?
+  created       DateTime          @default(now())
+  updated       DateTime          @updatedAt
+
+  depositedBy Users       @relation("depositor", fields: [userId], references: [id], onDelete: SetDefault)
+  reviewedBy  Users?      @relation("reviewer", fields: [reviewedById], references: [id], onDelete: SetDefault)
+  bankAccount BankAcconts @relation(fields: [bankAccountId], references: [id], onDelete: SetDefault)
+}

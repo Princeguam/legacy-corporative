@@ -16,7 +16,7 @@ datasource db {
 
 enum UserRole {
   Admin
-  Investor
+  User
 }
 
 enum AuthType {
@@ -42,6 +42,7 @@ model Users {
   firstName  String
   middleName String?
   lastName   String
+  fullName   String?
   email      String   @unique
   phoneNo    String   @unique
   dob        DateTime
@@ -51,20 +52,23 @@ model Users {
   lga        String?
   gender     String?
   passport   String?
+  role       UserRole @default(User)
   isAdmin    Boolean  @default(false)
+  isDeleted  Boolean  @default(false)
   created    DateTime @default(now())
   updated    DateTime @updatedAt
 
   userSessions          UserSessions[]
-  reviewedTransactions  Transactions[] @relation("reviewer")
-  depositedTransactions Transactions[] @relation("depositor")
+  reviewedTransactions  PaymentTransactions[] @relation("reviewer")
+  depositedTransactions PaymentTransactions[] @relation("depositor")
 }
 
 model UserSessions {
   id           Int      @id @default(autoincrement())
   userId       Int
-  refreshToken String
-  resetToken   String
+  refreshToken String?
+  resetToken   String?
+  smsToken     String?
   expiration   DateTime
   role         UserRole
   authType     AuthType @default(Api)
@@ -82,10 +86,10 @@ model BankAcconts {
   isActive      Boolean  @default(true)
   createdAt     DateTime @default(now())
 
-  transactions Transactions[]
+  transactions PaymentTransactions[]
 }
 
-model Transactions {
+model PaymentTransactions {
   id            Int               @id @default(autoincrement())
   bankAccountId Int
   userId        Int

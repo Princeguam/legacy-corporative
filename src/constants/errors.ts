@@ -13,6 +13,8 @@ export const ErrorType = {
     NotAuthorized: 1012,
     UserDeactivated: 1013,
     InvalidRefreshToken: 1014,
+    UserNotFound: 1015,
+    PhoneNoAlreadyExist: 1016,
 };
 
 interface ErrorResponse {
@@ -81,6 +83,18 @@ export function HandleServerError(type: number): ErrorResponse {
             return {
                 errorCode: type,
                 message: "User Unavailable",
+                statusCode: 400,
+            };
+        case ErrorType.PhoneNoAlreadyExist:
+            return {
+                errorCode: type,
+                message: "Phone Number ALready Exist",
+                statusCode: 400,
+            };
+        case ErrorType.UserNotFound:
+            return {
+                errorCode: type,
+                message: "User Not Found",
                 statusCode: 400,
             };
         case ErrorType.NotAuthorized:

@@ -15,6 +15,17 @@ export const ErrorType = {
     InvalidRefreshToken: 1014,
     UserNotFound: 1015,
     PhoneNoAlreadyExist: 1016,
+    AmountMissing: 1017,
+    AttachementMissing: 1018,
+    InvalidInput: 1019,
+    PaymentPeriodMissing: 1020,
+    PaymentAlreadyExist: 1021,
+    BankAccountNotFound: 1022,
+    BankAccountIDMissing: 1023,
+    PaymentIDMissing: 1024,
+    PaymentNotFound: 1025,
+    PaymentUpdateConflict: 1026,
+    UserIDMissing: 1027,
 };
 
 interface ErrorResponse {
@@ -113,6 +124,72 @@ export function HandleServerError(type: number): ErrorResponse {
             return {
                 errorCode: type,
                 message: "Invalid Refresh Token",
+                statusCode: 400,
+            };
+        case ErrorType.AmountMissing:
+            return {
+                errorCode: type,
+                message: "Amount Not Provided",
+                statusCode: 400,
+            };
+        case ErrorType.AttachementMissing:
+            return {
+                errorCode: type,
+                message: "Attachment Not Provided",
+                statusCode: 400,
+            };
+        case ErrorType.InvalidInput:
+            return {
+                errorCode: type,
+                message: "Invalid Input",
+                statusCode: 400,
+            };
+        case ErrorType.PaymentPeriodMissing:
+            return {
+                errorCode: type,
+                message: "Payment Month Not Provided",
+                statusCode: 400,
+            };
+        case ErrorType.PaymentAlreadyExist:
+            return {
+                errorCode: type,
+                message: "Payment For Selected Month Already Exist",
+                statusCode: 400,
+            };
+        case ErrorType.BankAccountNotFound:
+            return {
+                errorCode: type,
+                message: "Bank Account Not Found",
+                statusCode: 400,
+            };
+        case ErrorType.BankAccountIDMissing:
+            return {
+                errorCode: type,
+                message: "Bank Account ID Missing",
+                statusCode: 400,
+            };
+        case ErrorType.PaymentIDMissing:
+            return {
+                errorCode: type,
+                message: "Payment ID Missing",
+                statusCode: 400,
+            };
+        case ErrorType.PaymentNotFound:
+            return {
+                errorCode: type,
+                message: "Payment Not Found",
+                statusCode: 400,
+            };
+        case ErrorType.PaymentUpdateConflict:
+            return {
+                errorCode: type,
+                message: "Payment Update Conflict",
+                statusCode: 400,
+            };
+        case ErrorType.UserIDMissing:
+            return {
+                errorCode: type,
+                message: "User ID Missing",
                 statusCode: 400,
             };
         default:

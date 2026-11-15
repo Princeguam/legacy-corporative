@@ -37,6 +37,11 @@ enum TransactionType {
   ADJUSTMENT
 }
 
+enum TransactionSource {
+  Admin
+  User
+}
+
 model Users {
   id         Int      @id @default(autoincrement())
   firstName  String
@@ -55,6 +60,7 @@ model Users {
   role       UserRole @default(User)
   isAdmin    Boolean  @default(false)
   isDeleted  Boolean  @default(false)
+  isActive   Boolean  @default(true)
   created    DateTime @default(now())
   updated    DateTime @updatedAt
 
@@ -94,12 +100,14 @@ model PaymentTransactions {
   bankAccountId Int
   userId        Int
   status        TransactionStatus @default(PENDING)
-  type          TransactionType
+  type          TransactionType   @default(DEPOSIT)
   amount        BigInt
   currency      String            @default("NGN")
   note          String?
+  source        TransactionSource
   attachmentUrl String?
   reviewedById  Int?
+  period        DateTime
   depositedAt   DateTime?
   reviewedAt    DateTime?
   created       DateTime          @default(now())

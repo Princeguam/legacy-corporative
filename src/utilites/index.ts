@@ -110,7 +110,7 @@ export function parseEnumList<T extends string>(
         .map((item) => item.trim())
         .filter(Boolean);
 
-    if (values.length === 1 && values[0].toLowerCase() === "all") {
+    if (values.length === 1 && values[0]?.toLowerCase() === "all") {
         return [];
     }
 

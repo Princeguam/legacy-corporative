@@ -27,6 +27,7 @@ import {
     Prisma,
     parseMoneyAmount,
     parseDateRangeValue,
+    parseEnumList,
 } from "../../../utilites/index.js";
 import bcrypt from "bcrypt";
 import humps from "humps";
@@ -68,7 +69,10 @@ AdminTransactionRoute.get(
         }
 
         let statuses = Object.values($Enums.TransactionStatus);
-        let selectedStatuses = parseEnumList(req.query.status, statuses);
+        let selectedStatuses = parseEnumList(
+            String(req.query.status),
+            statuses,
+        );
 
         let searchOrderBy: ArrangeBy = "created";
         if (url.searchParams.has("by")) {
@@ -90,22 +94,66 @@ AdminTransactionRoute.get(
             [searchOrderBy]: searchOrder,
         };
 
-        let whereClause: Prisma.PaymentTransactionsFindManyArgs["where"] = {
-            OR: [
-                {
-                    note: {
-                        contains: search,
-                        mode: "insensitive",
-                    },
-                },
-            ],
-        };
+        let whereClause: Prisma.PaymentTransactionsFindManyArgs["where"] = {};
 
         if (from || to) {
             whereClause.period = {};
             if (from) whereClause.period.gte = from;
             if (to) whereClause.period.lte = to;
         }
+        if (selectedStatuses.length > 0) {
+            whereClause.status = { in: selectedStatuses };
+        }
+
+        if (search) {
+            let matchingStatuses = statuses.filter((status) =>
+                status.toLowerCase().includes(search.toLowerCase()),
+            );
+            whereClause.OR = [
+                {
+                    note: {
+                        contains: search,
+                        mode: "insensitive",
+                    },
+                },
+            ];
+
+            if (matchingStatuses.length > 0) {
+                whereClause.OR.push({ status: { in: matchingStatuses } });
+            }
+        }
+
+        let [totalItems, transactions] = await prismaClient.$transaction([
+            prismaClient.paymentTransactions.count({ where: whereClause }),
+            prismaClient.paymentTransactions.findMany({
+                where: whereClause,
+                ...(!getAllRecord && {
+                    skip: getSkippedPrismaValue(page, count),
+                    take: count,
+                }),
+                orderBy,
+                select: $Types.paymentTransactions,
+            }),
+        ]);
+
+        let pageData = humps.camelizeKeys(transactions);
+
+        res.status(200).json(
+            sendResponse(
+                true,
+                kDefaultSuccessMessage,
+                {
+                    page: !getAllRecord ? page : kDefaultAllQueryPage,
+                    count: pageData.length,
+                    totalPages: !getAllRecord
+                        ? Math.ceil(totalItems / count)
+                        : kDefaultAllQueryPage,
+                    totalItems: totalItems,
+                    pageData,
+                },
+                undefined,
+            ),
+        );
     }),
 );
 

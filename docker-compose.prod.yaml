@@ -1,0 +1,79 @@
+# prettier-ignore
+services:
+  # ==========================================
+  # API — production
+  # ==========================================
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+      target: production
+    image: legacy-api:1.0.0
+    env_file:
+      - .env
+    container_name: legacy-api
+    expose:
+      - "3000" #only descriptive. the port is open to communicate internally with other services
+    environment:
+      NODE_ENV: production
+      PORT: "${PORT:-3000}"
+      DATABASE_URL: "postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}"
+    # command:
+    #   ["npm", "run", "dev"] 
+    #   this would likely be declared in the dockerfile so there will be no need for this in production!!
+    #   # explicit here for clarity — matches the
+    #   # Dockerfile CMD for the development stage
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - legacy-network
+      - proxy-network
+
+  # ==========================================
+  # PostgreSQL — production
+  # ==========================================
+  db:
+    image: postgres:18-alpine
+    container_name: legacy-db
+    environment:
+      POSTGRES_DB: "${DB_NAME}"
+      POSTGRES_USER: "${DB_USER}"
+      POSTGRES_PASSWORD: "${DB_PASSWORD}"
+    volumes:
+      - postgres_data_legacy:/var/lib/postgresql
+
+    # CLOSING THE PORTS SINCE IT SHOULDN'T BE OPEN PUBLICLY AND ONLY OPEN WHEN I SSH IN
+
+    # ports:
+    #   - "5433:5432"
+    #    # since I have postgres running locally, I'm using a different port
+    #     # on the host to connect to postgres without colliding
+    #     # exposes postgres to the host so you can
+    #     # connect with TablePlus, DBeaver, or psql
+    #     # directly from your machine
+    expose:
+      - "${DB_PORT}"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - legacy-network
+
+
+volumes:
+  postgres_data_legacy:
+    name: legacy-postgres-data
+
+networks:
+  legacy-network:
+    name: legacy-prod-network
+    driver: bridge
+  proxy-network:
+    name: shared-network
+    external: true

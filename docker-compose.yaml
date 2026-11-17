@@ -1,0 +1,103 @@
+# prettier-ignore
+services:
+  # ==========================================
+  # API — dev overrides
+  # ==========================================
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    image: legacy-wealth-api-dev:1.0.0
+    env_file:
+      - .env
+    container_name: legacy-wealth-api-dev
+    ports:
+      - "3000" # exposes the port only internally, not to the host machine
+    volumes:
+      - ./src:/app/src # bind mount — changes to src/ on your machine
+    environment:
+      NODE_ENV: development
+      PORT: "${PORT:-3000}"
+      DATABASE_URL: "postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}"
+    command:
+      ["npm", "run", "dev"] # this would likely be declared in the dockerfile so there will be no need for this in production!!
+      # explicit here for clarity — matches the
+      # Dockerfile CMD for the development stage
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    # in production, the develop section is dropped because there's no need to actively watch files in prod.
+    networks:
+      - legacy-network
+    develop:
+      watch:
+        - action: sync # sync file changes into the container instantly
+          path: ./src
+          target: /app/src
+          ignore:
+            - "**/*.test.*"
+            - "**/__tests__/**"
+        - action: rebuild # full rebuild if package.json changes
+          path: ./package.json # (new dependency was added)
+
+  # ==========================================
+  # Nginx — dev overrides
+  # ==========================================
+  nginx:
+    image: nginx:alpine
+    container_name: legacy-wealth-nginx-dev
+    ports: # these are the only two ports exposed outside
+      - "8080:80" # HTTP publicly exposed, nginx listens here
+      - "8443:443" # HTTPS publicly exposed, SSL terminates here
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      api:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - legacy-network
+
+  # ==========================================
+  # PostgreSQL — dev overrides
+  # ==========================================
+  db:
+    image: postgres:18-alpine
+    container_name: legacy-db-dev
+    environment:
+      POSTGRES_DB: "${DB_NAME}"
+      POSTGRES_USER: "${DB_USER}"
+      POSTGRES_PASSWORD: "${DB_PASSWORD}"
+    volumes:
+      - postgres_data_legacy:/var/lib/postgresql
+      # use /var/lib/pgsql/16/data for local db since I have the db locally
+      # and use /var/lib/postgresql for production db since a new db volume will be created
+    ports:
+      - "5434:5432"
+        # since I have postgres running locally, I'm using a different port
+        # on the host to connect to postgres without colliding
+        # exposes postgres to the host so you can
+        # connect with TablePlus, DBeaver, or psql
+        # directly from your machine
+    expose:
+      - "${DB_PORT}"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - legacy-network
+
+volumes:
+  postgres_data_legacy:
+    name: legacy-dev-postgres-data
+
+networks:
+  legacy-network:
+    name: legacy-dev-network
+    driver: bridge

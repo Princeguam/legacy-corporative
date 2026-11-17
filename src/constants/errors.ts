@@ -26,6 +26,8 @@ export const ErrorType = {
     PaymentNotFound: 1025,
     PaymentUpdateConflict: 1026,
     UserIDMissing: 1027,
+    MemberIDMissing: 1028,
+    MemberNotFound: 1029,
 };
 
 interface ErrorResponse {
@@ -189,7 +191,19 @@ export function HandleServerError(type: number): ErrorResponse {
         case ErrorType.UserIDMissing:
             return {
                 errorCode: type,
-                message: "User ID Missing",
+                message: "User ID Not Provided",
+                statusCode: 400,
+            };
+        case ErrorType.MemberIDMissing:
+            return {
+                errorCode: type,
+                message: "Member ID Not Provided",
+                statusCode: 400,
+            };
+        case ErrorType.MemberNotFound:
+            return {
+                errorCode: type,
+                message: "Member Not Found",
                 statusCode: 400,
             };
         default:

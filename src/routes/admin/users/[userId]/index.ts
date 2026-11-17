@@ -26,6 +26,7 @@ import {
     getSkippedPrismaValue,
     Prisma,
     parseMoneyAmount,
+    toId,
 } from "../../../../utilites/index.js";
 import bcrypt from "bcrypt";
 import humps from "humps";
@@ -35,15 +36,15 @@ import { is } from "date-fns/locale";
 const AdminUserIDRoute = express.Router();
 
 AdminUserIDRoute.get(
-    "/:userId",
+    "/:memberId",
     asyncHandler(async (req: Request, res: Response) => {
         let adminId = req.store.get(kUserIdStoreKey);
         let userRole = req.store.get(kUserRoleStoreKey);
-        let externalUserId = parseInt(String(req.params.userId));
+        let memberId = toId(req.params.memberId);
 
-        if (!externalUserId) {
+        if (!memberId) {
             let { statusCode, message, errorCode } = HandleServerError(
-                ErrorType.UserIDMissing,
+                ErrorType.MemberIDMissing,
             );
             res.status(statusCode).json(
                 sendResponse(false, message, undefined, errorCode),
@@ -53,14 +54,14 @@ AdminUserIDRoute.get(
 
         let userExist = await prismaClient.users.findFirst({
             where: {
-                id: externalUserId,
+                id: memberId,
             },
             select: $Types.users,
         });
 
         if (!userExist) {
             let { statusCode, message, errorCode } = HandleServerError(
-                ErrorType.PaymentNotFound,
+                ErrorType.MemberNotFound,
             );
             res.status(statusCode).json(
                 sendResponse(false, message, undefined, errorCode),
@@ -80,17 +81,17 @@ AdminUserIDRoute.get(
 );
 
 AdminUserIDRoute.put(
-    "/:userId/deactivate",
+    "/:memberId/deactivate",
     asyncHandler(async (req: Request, res: Response) => {
         let adminId = req.store.get(kUserIdStoreKey);
         let userRole = req.store.get(kUserRoleStoreKey);
-        let externalUserId = parseInt(String(req.params.userId));
+        let memberId = toId(req.params.memberId);
 
         let body = req.body ?? {};
 
-        if (!externalUserId) {
+        if (!memberId) {
             let { statusCode, message, errorCode } = HandleServerError(
-                ErrorType.UserIDMissing,
+                ErrorType.MemberIDMissing,
             );
             res.status(statusCode).json(
                 sendResponse(false, message, undefined, errorCode),
@@ -100,14 +101,14 @@ AdminUserIDRoute.put(
 
         let userExist = await prismaClient.users.findFirst({
             where: {
-                id: externalUserId,
+                id: memberId,
             },
             select: $Types.users,
         });
 
         if (!userExist) {
             let { statusCode, message, errorCode } = HandleServerError(
-                ErrorType.PaymentNotFound,
+                ErrorType.MemberNotFound,
             );
             res.status(statusCode).json(
                 sendResponse(false, message, undefined, errorCode),
@@ -119,7 +120,7 @@ AdminUserIDRoute.put(
 
         let updated = await prismaClient.users.update({
             where: {
-                id: externalUserId,
+                id: memberId,
             },
             data: {
                 isActive: isActive,
@@ -139,15 +140,15 @@ AdminUserIDRoute.put(
 );
 
 AdminUserIDRoute.put(
-    "/:userId/admin",
+    "/:memberId/admin",
     asyncHandler(async (req: Request, res: Response) => {
         let adminId = req.store.get(kUserIdStoreKey);
         let userRole = req.store.get(kUserRoleStoreKey);
-        let externalUserId = parseInt(String(req.params.userId));
+        let memberId = toId(req.params.memberId);
 
         let body = req.body ?? {};
 
-        if (!externalUserId) {
+        if (!memberId) {
             let { statusCode, message, errorCode } = HandleServerError(
                 ErrorType.UserIDMissing,
             );
@@ -159,7 +160,7 @@ AdminUserIDRoute.put(
 
         let userExist = await prismaClient.users.findFirst({
             where: {
-                id: externalUserId,
+                id: memberId,
             },
             select: $Types.users,
         });
@@ -178,7 +179,7 @@ AdminUserIDRoute.put(
 
         let updated = await prismaClient.users.update({
             where: {
-                id: externalUserId,
+                id: memberId,
             },
             data: {
                 isActive: isAdmin,

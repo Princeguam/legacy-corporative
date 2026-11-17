@@ -128,5 +128,15 @@ export function parseEnumList<T extends string>(
     return result;
 }
 
+export function toId(value: any) {
+    if (typeof value !== "number" && typeof value !== "string") return null;
+
+    let id = Number(value);
+    if (!Number.isInteger(id) || id < 1 || id > 2147483647) {
+        return null;
+    }
+    return id;
+}
+
 export * from "./prismaClient.js";
 export * from "./sendResponse.js";

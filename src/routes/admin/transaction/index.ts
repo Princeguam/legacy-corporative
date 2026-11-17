@@ -1,15 +1,11 @@
 import express, { type Response, type Request } from "express";
 import asyncHandler from "express-async-handler";
 import {
-    kDefaultAccessTokenExpirationIn,
-    kDefaultRefreshTokenExpirationIn,
     kDefaultSuccessMessage,
     kUserIdStoreKey,
     kUserRoleStoreKey,
     HandleServerError,
     ErrorType,
-    kDefaultAccessTokenExpiration,
-    kDefaultRefreshTokenExpiration,
     $Types,
     kDefaultQueryPage,
     kDefaultQueryCount,
@@ -21,7 +17,6 @@ import {
 import {
     sendResponse,
     prismaClient,
-    generatJwtToken,
     parseBoolean,
     getSkippedPrismaValue,
     Prisma,
@@ -29,10 +24,8 @@ import {
     parseDateRangeValue,
     parseEnumList,
 } from "../../../utilites/index.js";
-import bcrypt from "bcrypt";
 import humps from "humps";
 import { addDays, endOfMonth, startOfMonth } from "date-fns";
-import { is } from "date-fns/locale";
 
 const AdminTransactionRoute = express.Router();
 
@@ -154,6 +147,164 @@ AdminTransactionRoute.get(
                 undefined,
             ),
         );
+    }),
+);
+
+AdminTransactionRoute.post(
+    "/",
+    asyncHandler(async (req: Request, res: Response) => {
+        let userId = req.store.get(kUserIdStoreKey);
+        let now = new Date();
+
+        let body = req.body ?? {};
+
+        if (!body.memberId) {
+            let { statusCode, message, errorCode } = HandleServerError(
+                ErrorType.MemberIDMissing,
+            );
+            res.status(statusCode).json(
+                sendResponse(false, message, undefined, errorCode),
+            );
+            return;
+        }
+
+        let member = await prismaClient.users.findFirst({
+            where: {
+                id: body.memberId,
+            },
+            select: { id: true },
+        });
+
+        if (!member) {
+            let { statusCode, message, errorCode } = HandleServerError(
+                ErrorType.MemberNotFound,
+            );
+            res.status(statusCode).json(
+                sendResponse(false, message, undefined, errorCode),
+            );
+            return;
+        }
+
+        if (!body.amount) {
+            let { statusCode, message, errorCode } = HandleServerError(
+                ErrorType.AmountMissing,
+            );
+            res.status(statusCode).json(
+                sendResponse(false, message, undefined, errorCode),
+            );
+            return;
+        }
+
+        if (!body.bankAccountId) {
+            let { statusCode, message, errorCode } = HandleServerError(
+                ErrorType.BankAccountIDMissing,
+            );
+            res.status(statusCode).json(
+                sendResponse(false, message, undefined, errorCode),
+            );
+            return;
+        }
+
+        if (!body.period) {
+            let { statusCode, message, errorCode } = HandleServerError(
+                ErrorType.PaymentPeriodMissing,
+            );
+            res.status(statusCode).json(
+                sendResponse(false, message, undefined, errorCode),
+            );
+            return;
+        }
+
+        let amount = parseMoneyAmount(body.amount, 0n);
+        if (!amount) {
+            let { statusCode, message, errorCode } = HandleServerError(
+                ErrorType.InvalidInput,
+            );
+            res.status(statusCode).json(
+                sendResponse(false, message, undefined, errorCode),
+            );
+            return;
+        }
+
+        let period = startOfMonth(new Date(body.period));
+        let start = period;
+        let end = endOfMonth(new Date(period));
+        let bankAccountId = parseInt(body.bankAccountId);
+
+        let bankAccount = await prismaClient.bankAcconts.findFirst({
+            where: {
+                id: bankAccountId,
+            },
+            select: { id: true },
+        });
+
+        if (!bankAccount) {
+            let { statusCode, message, errorCode } = HandleServerError(
+                ErrorType.BankAccountNotFound,
+            );
+            res.status(statusCode).json(
+                sendResponse(false, message, undefined, errorCode),
+            );
+            return;
+        }
+
+        let paymentExist = await prismaClient.paymentTransactions.findFirst({
+            where: {
+                userId: member.id,
+                period: {
+                    gte: start,
+                    lte: end,
+                },
+                status: { not: $Enums.TransactionStatus.REJECTED },
+            },
+            select: { id: true, status: true },
+        });
+
+        if (paymentExist) {
+            let { statusCode, message, errorCode } = HandleServerError(
+                ErrorType.PaymentAlreadyExist,
+            );
+            res.status(statusCode).json(
+                sendResponse(false, message, undefined, errorCode),
+            );
+            return;
+        }
+
+        let newPayment = await prismaClient.paymentTransactions.create({
+            data: {
+                bankAccountId: bankAccountId,
+                userId: member.id,
+                status: $Enums.TransactionStatus.CONFIRMED,
+                type: $Enums.TransactionType.DEPOSIT,
+                amount: amount,
+                note: body.note,
+                source: $Enums.TransactionSource.Admin,
+                attachmentUrl: body.attachmentUrl,
+                period: period,
+                depositedAt: body.depositedAt
+                    ? new Date(body.depositedAt)
+                    : now,
+                reviewedById: userId,
+                reviewedAt: now,
+            },
+            select: $Types.paymentTransactions,
+        });
+
+        res.status(200).json(
+            sendResponse(
+                true,
+                kDefaultSuccessMessage,
+                humps.camelizeKeys(newPayment),
+                undefined,
+            ),
+        );
+    }),
+);
+
+AdminTransactionRoute.delete(
+    "/",
+    asyncHandler(async (req: Request, res: Response) => {
+        let userId = req.store.get(kUserIdStoreKey);
     }),
 );
 

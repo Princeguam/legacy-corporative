@@ -10,7 +10,7 @@ app.use(express.json());
 app.use(requestTempStore());
 
 app.get("/", (_: Request, res: Response) => {
-    res.send("Welcome to api backend");
+    res.send("Welcome to Legacy wealth api backend");
 });
 
 app.get("/health", (_: Request, res: Response) => {

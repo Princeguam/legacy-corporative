@@ -53,3 +53,27 @@ export const paymentTransactions = {
         select: bankAccount,
     },
 };
+
+export const notifications = {
+    id: true,
+    userId: true,
+    type: true,
+    title: true,
+    body: true,
+    link: true,
+    readAt: true,
+    created: true,
+};
+
+export const feedback = {
+    id: true,
+    userId: true,
+    subject: true,
+    message: true,
+    category: true,
+    created: true,
+    updated: true,
+    member: {
+        select: users,
+    },
+};

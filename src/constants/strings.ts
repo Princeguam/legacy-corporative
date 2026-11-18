@@ -18,3 +18,4 @@ export const kRateLimitKey = "rate_limit";
 export const kDefaultApiVersion = "v1";
 export const kFileFormDataKey = "files";
 export const kDefaultFileContentType = "application/octet-stream";
+export const kBaseName = "Legacy Wealth";

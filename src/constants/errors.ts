@@ -28,6 +28,13 @@ export const ErrorType = {
     UserIDMissing: 1027,
     MemberIDMissing: 1028,
     MemberNotFound: 1029,
+    NotificationIDMissing: 1030,
+    NotificationNotFound: 1031,
+    MessageMissing: 1032,
+    SubjectMissing: 1033,
+    CategoryMissing: 1034,
+    FeedbackIDMissing: 1035,
+    FeedbackNotFound: 1036,
 };
 
 interface ErrorResponse {
@@ -204,6 +211,48 @@ export function HandleServerError(type: number): ErrorResponse {
             return {
                 errorCode: type,
                 message: "Member Not Found",
+                statusCode: 400,
+            };
+        case ErrorType.NotificationIDMissing:
+            return {
+                errorCode: type,
+                message: "Notification ID Not Provided",
+                statusCode: 400,
+            };
+        case ErrorType.NotificationNotFound:
+            return {
+                errorCode: type,
+                message: "Notification Not Found",
+                statusCode: 400,
+            };
+        case ErrorType.MessageMissing:
+            return {
+                errorCode: type,
+                message: "Message Not Provided",
+                statusCode: 400,
+            };
+        case ErrorType.SubjectMissing:
+            return {
+                errorCode: type,
+                message: "Subject Not Provided",
+                statusCode: 400,
+            };
+        case ErrorType.CategoryMissing:
+            return {
+                errorCode: type,
+                message: "Category Not Provided",
+                statusCode: 400,
+            };
+        case ErrorType.FeedbackIDMissing:
+            return {
+                errorCode: type,
+                message: "Feedback ID Not Provided",
+                statusCode: 400,
+            };
+        case ErrorType.FeedbackNotFound:
+            return {
+                errorCode: type,
+                message: "Feedback Not Found",
                 statusCode: 400,
             };
         default:

@@ -57,7 +57,7 @@ export function auth() {
                 if (!userId || !expiresIn) {
                     throw new Error();
                 }
-                if (isAfter(Date.now(), toDate(expiresIn))) {
+                if (isAfter(Date.now(), expiresIn)) {
                     let { statusCode, message, errorCode } = HandleServerError(
                         ErrorType.AuthorizationExpired,
                     );

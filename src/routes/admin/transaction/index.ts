@@ -27,6 +27,8 @@ import {
 import humps from "humps";
 import { addDays, endOfMonth, startOfMonth } from "date-fns";
 
+import AdminTransactionIDRoute from "./[transactionId]/index.js";
+
 const AdminTransactionRoute = express.Router();
 
 type ArrangeBy = "status" | "created";
@@ -307,5 +309,7 @@ AdminTransactionRoute.delete(
         let userId = req.store.get(kUserIdStoreKey);
     }),
 );
+
+AdminTransactionRoute.use("/", AdminTransactionIDRoute);
 
 export default AdminTransactionRoute;

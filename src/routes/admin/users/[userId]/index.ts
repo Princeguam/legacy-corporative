@@ -1,15 +1,11 @@
 import express, { type Response, type Request } from "express";
 import asyncHandler from "express-async-handler";
 import {
-    kDefaultAccessTokenExpirationIn,
-    kDefaultRefreshTokenExpirationIn,
     kDefaultSuccessMessage,
     kUserIdStoreKey,
     kUserRoleStoreKey,
     HandleServerError,
     ErrorType,
-    kDefaultAccessTokenExpiration,
-    kDefaultRefreshTokenExpiration,
     $Types,
     kDefaultQueryPage,
     kDefaultQueryCount,
@@ -28,10 +24,8 @@ import {
     parseMoneyAmount,
     toId,
 } from "../../../../utilites/index.js";
-import bcrypt from "bcrypt";
 import humps from "humps";
-import { addDays, endOfMonth, startOfMonth } from "date-fns";
-import { is } from "date-fns/locale";
+import AdminUserIDTransactionRoute from "./transaction/index.js";
 
 const AdminUserIDRoute = express.Router();
 
@@ -198,5 +192,7 @@ AdminUserIDRoute.put(
         );
     }),
 );
+
+AdminUserIDRoute.use("/", AdminUserIDTransactionRoute);
 
 export default AdminUserIDRoute;

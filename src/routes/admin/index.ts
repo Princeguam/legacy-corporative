@@ -27,10 +27,19 @@ import {
     Prisma,
     parseMoneyAmount,
 } from "../../utilites/index.js";
-import { userPermit } from "../../middleware/userPermit.js";
+import { userPermit, auth } from "../../middleware/index.js";
+import AdminUserRoute from "./users/index.js";
+import AdminTransactionRoute from "./transaction/index.js";
+import AdminDashboard from "./dashboard.js";
+import AdminFeedbackRoute from "./feedback/index.js";
 
 const AdminRoute = express.Router();
-
+AdminRoute.use(auth());
 AdminRoute.use(userPermit());
+
+AdminRoute.use("/user", AdminUserRoute);
+AdminRoute.use("/transaction", AdminTransactionRoute);
+AdminRoute.use("/dashboard", AdminDashboard);
+AdminRoute.use("/feedback", AdminFeedbackRoute);
 
 export default AdminRoute;

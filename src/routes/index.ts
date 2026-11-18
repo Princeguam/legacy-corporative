@@ -6,6 +6,9 @@ import swaggerJSDoc, {
     type Options as swaggerJsDocOption,
 } from "swagger-jsdoc";
 import swaggerUi from "swagger-ui-express";
+import FeedbackRoute from "./feedback/index.js";
+import NotificationRoute from "./notification/index.js";
+import DashboardRoute from "./dashboard.js";
 
 const V1Route = express.Router();
 
@@ -48,5 +51,8 @@ V1Route.get("/docs", swaggerUi.setup(swaggerSpec));
 V1Route.use("/auth", AuthRoute);
 V1Route.use("/transaction", TransactionRoute);
 V1Route.use("/profile", ProfileRoute);
+V1Route.use("/feedback", FeedbackRoute);
+V1Route.use("/notification", NotificationRoute);
+V1Route.use("/dashboard", DashboardRoute);
 
 export default V1Route;

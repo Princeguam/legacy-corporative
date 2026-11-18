@@ -31,6 +31,7 @@ import bcrypt from "bcrypt";
 import humps from "humps";
 import { addDays, endOfMonth, startOfMonth } from "date-fns";
 import TransactionIDRoute from "./[transactionId]/index.js";
+import { auth } from "../../middleware/index.js";
 
 type ArrangeBy = "status" | "created" | "note";
 
@@ -38,8 +39,10 @@ type ArrangeOrder = "asc" | "desc";
 
 const TransactionRoute = express.Router();
 
+TransactionRoute.use(auth());
+
 TransactionRoute.get(
-    "/",
+    "/all",
     asyncHandler(async (req: Request, res: Response) => {
         let userId = req.store.get(kUserIdStoreKey);
         let userRole = req.store.get(kUserRoleStoreKey);

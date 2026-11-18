@@ -19,8 +19,11 @@ import humps from "humps";
 import { addDays } from "date-fns";
 import { generatJwtToken } from "../../utilites/index.js";
 import { $Enums } from "../../constants/enums.js";
+import { auth } from "../../middleware/index.js";
 
 const ProfileRoute = express.Router();
+
+ProfileRoute.use(auth());
 
 ProfileRoute.get(
     "/",

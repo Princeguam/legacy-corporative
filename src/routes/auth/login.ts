@@ -93,7 +93,7 @@ LoginRoute.post(
             JSON.stringify({
                 userId: userExist.id,
                 userRole: userExist.role,
-                expiration: accessTokenExpiration.getTime(),
+                expiresIn: accessTokenExpiration.getTime(),
             }),
             kDefaultAccessTokenExpirationIn,
         );
@@ -102,7 +102,7 @@ LoginRoute.post(
             JSON.stringify({
                 userId: userExist.id,
                 userRole: userExist.role,
-                expiresAt: refreshTokenExpiration.getTime(),
+                expiresIn: refreshTokenExpiration.getTime(),
                 isRefreshToken: true,
             }),
             kDefaultRefreshTokenExpirationIn,

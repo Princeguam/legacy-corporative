@@ -27,10 +27,9 @@ import {
     Prisma,
     parseMoneyAmount,
 } from "../../../utilites/index.js";
-import bcrypt from "bcrypt";
 import humps from "humps";
-import { addDays, endOfMonth, startOfMonth } from "date-fns";
-import { is } from "date-fns/locale";
+
+import AdminUserIDRoute from "./[userId]/index.js";
 
 const AdminUserRoute = express.Router();
 
@@ -175,5 +174,7 @@ AdminUserRoute.get(
         );
     }),
 );
+
+AdminUserRoute.use("/", AdminUserIDRoute);
 
 export default AdminUserRoute;

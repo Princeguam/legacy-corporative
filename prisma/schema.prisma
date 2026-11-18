@@ -36,11 +36,43 @@ enum TransactionType {
   DEPOSIT
   WITHDRAWAL
   ADJUSTMENT
+  FINE_PAYMENT
 }
 
 enum TransactionSource {
   Admin
   User
+}
+
+enum NotificationType {
+  Deposit_Approved
+  Deposit_Rejected
+  Dues
+  Fine
+  General
+}
+
+enum ChargeReason {
+  MISSED_MEETING
+  LATE_DUES
+  OTHER
+}
+
+enum ChargeStatus {
+  Active
+  Waived
+}
+
+enum AttendanceStatus {
+  Present
+  Absent
+  Excused
+}
+
+enum FeedbackCategory {
+  General
+  Bug
+  Suggestion
 }
 
 model Users {
@@ -68,6 +100,10 @@ model Users {
   userSessions          UserSessions[]
   reviewedTransactions  PaymentTransactions[] @relation("reviewer")
   depositedTransactions PaymentTransactions[] @relation("depositor")
+  notifications         Notifications[]
+  feedbacks             Feedbacks[]
+  attendance            Attendance[]
+  charges               Charges[]
 }
 
 model UserSessions {
@@ -99,6 +135,7 @@ model BankAcconts {
 model PaymentTransactions {
   id            Int               @id @default(autoincrement())
   bankAccountId Int
+  chargeId      Int?
   userId        Int
   status        TransactionStatus @default(PENDING)
   type          TransactionType   @default(DEPOSIT)
@@ -116,5 +153,86 @@ model PaymentTransactions {
 
   depositedBy Users       @relation("depositor", fields: [userId], references: [id], onDelete: SetDefault)
   reviewedBy  Users?      @relation("reviewer", fields: [reviewedById], references: [id], onDelete: SetDefault)
+  charge      Charges?    @relation(fields: [chargeId], references: [id], onDelete: Cascade)
   bankAccount BankAcconts @relation(fields: [bankAccountId], references: [id], onDelete: SetDefault)
+}
+
+model Notifications {
+  id      Int              @id @default(autoincrement())
+  userId  Int
+  type    NotificationType
+  title   String
+  body    String
+  link    String? // e.g. "/transactions/abc", so the UI can deep-link
+  readAt  DateTime?
+  created DateTime         @default(now())
+  user    Users            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt, created])
+}
+
+model Feedbacks {
+  id          Int              @id @default(autoincrement())
+  userId      Int
+  subject     String?
+  message     String
+  category    FeedbackCategory
+  // status      FeedbackStatus @default(NEW)
+  response    String?
+  respondedBy String?
+  responded   DateTime?
+  created     DateTime         @default(now())
+  updated     DateTime         @updatedAt
+  member      Users            @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+}
+
+model Charges {
+  id          Int          @id @default(autoincrement())
+  userId      Int
+  reason      ChargeReason
+  status      ChargeStatus @default(Active)
+  amount      BigInt
+  description String?
+  period      DateTime?    @db.Date // for LATE_DUES: which month
+  meetingId   Int? // for MISSED_MEETING
+  issuedBy    Int
+  waivedBy    String?
+  waivedAt    DateTime?
+  created     DateTime     @default(now())
+  updated     DateTime     @updatedAt
+  meeting     Meetings?    @relation(fields: [meetingId], references: [id])
+  users       Users        @relation(fields: [userId], references: [id])
+
+  payments PaymentTransactions[]
+
+  @@unique([userId, reason, meetingId]) // one fine per member per meeting
+  @@unique([userId, reason, period]) // one late fee per member per month
+  @@index([userId, status])
+}
+
+model Meetings {
+  id         Int      @id @default(autoincrement())
+  title      String
+  meetingUrl String
+  heldAt     DateTime
+  created    DateTime @default(now())
+  updated    DateTime @updatedAt
+
+  attendance Attendance[]
+  charges    Charges[]
+}
+
+model Attendance {
+  id        Int              @id @default(autoincrement())
+  meetingId Int
+  status    AttendanceStatus
+  userId    Int
+  user      Users            @relation(fields: [userId], references: [id])
+  meeting   Meetings         @relation(fields: [meetingId], references: [id])
+  created   DateTime         @default(now())
+  updated   DateTime         @updatedAt
+
+  @@unique([meetingId, userId])
 }

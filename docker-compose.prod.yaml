@@ -47,10 +47,10 @@ services:
 
     # CLOSING THE PORTS SINCE IT SHOULDN'T BE OPEN PUBLICLY AND ONLY OPEN WHEN I SSH IN
 
-    # ports:
-    #   - "5433:5432"
-    #    # since I have postgres running locally, I'm using a different port
-    #     # on the host to connect to postgres without colliding
+    ports:
+      - "127.0.0.1:5434:5432"
+    #     # The postgres internal port is 5432, then i am mounting the 5434 port
+    #     # so i can connect to the db outside the container with like pgadmin etc
     #     # exposes postgres to the host so you can
     #     # connect with TablePlus, DBeaver, or psql
     #     # directly from your machine

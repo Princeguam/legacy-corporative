@@ -9,6 +9,10 @@ import swaggerUi from "swagger-ui-express";
 import FeedbackRoute from "./feedback/index.js";
 import NotificationRoute from "./notification/index.js";
 import DashboardRoute from "./dashboard.js";
+import UtilsRoute from "./utils/index.js";
+import AdminRoute from "./admin/index.js";
+import SettingsRoute from "./settings.js";
+import BankAccountRoute from "./bankAccount/index.js";
 
 const V1Route = express.Router();
 
@@ -54,5 +58,8 @@ V1Route.use("/profile", ProfileRoute);
 V1Route.use("/feedback", FeedbackRoute);
 V1Route.use("/notification", NotificationRoute);
 V1Route.use("/dashboard", DashboardRoute);
-
+V1Route.use("/util", UtilsRoute);
+V1Route.use("/admin", AdminRoute);
+V1Route.use("/setting", SettingsRoute);
+V1Route.use("/bank", BankAccountRoute);
 export default V1Route;

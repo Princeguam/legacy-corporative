@@ -11,6 +11,8 @@ import {
     kDefaultAccessTokenExpiration,
     kDefaultRefreshTokenExpiration,
     $Types,
+    kBrandLogo,
+    kBrandLogoWatermark,
 } from "../../constants/index.js";
 import { sendResponse } from "../../utilites/sendResponse.js";
 import { prismaClient } from "../../utilites/prismaClient.js";
@@ -20,6 +22,8 @@ import { addDays } from "date-fns";
 import { generatJwtToken } from "../../utilites/index.js";
 import { $Enums } from "../../constants/enums.js";
 import { auth } from "../../middleware/index.js";
+import { createMemberEmail } from "../../constants/templates/member-email.js";
+import { sendEmail } from "../../utilites/email.js";
 
 const ProfileRoute = express.Router();
 
@@ -58,6 +62,25 @@ ProfileRoute.get(
             );
             return;
         }
+
+        const message = createMemberEmail(
+            {
+                subject: "This is me testing",
+                title: "This is the test title",
+                recipientName: userExist.firstName,
+                to: "okogbulegoodluck@gmail.com",
+                body: [
+                    "This is the email i want to send to you ",
+
+                    "I am trying out how it would look if i wanted to show something to you",
+
+                    "There's no way to perform forgot password for now, so please dont forget your passwords",
+                ],
+            },
+            { images: { logo: kBrandLogo, watermark: kBrandLogoWatermark } },
+        );
+
+        sendEmail(message.to, message.subject, message.html);
 
         res.status(200).json(
             sendResponse(
@@ -162,6 +185,18 @@ ProfileRoute.put(
                 email: body.email || user.email,
                 phoneNo: body.phoneNo || user.phoneNo,
                 dob: body.dob ? new Date(body.dob) : user.dob,
+                occupation: body.occupation || user.occupation,
+                nextOfKinName: body.nextOfKinName || user.nextOfKinName,
+                nextOfKinPhone: body.nextOfKinPhone || user.nextOfKinPhone,
+                nextOfKinRelationship:
+                    body.nextOfKinRelationship || user.nextOfKinRelationship,
+                emergencyContact:
+                    body.emergencyContact || user.emergencyContact,
+                emergencyContactPhone:
+                    body.emergencyContactPhone || user.emergencyContactPhone,
+                emergencyContactRelationship:
+                    body.emergencyContactRelationship ||
+                    user.emergencyContactRelationship,
                 address: body.address ?? user.address,
                 state: body.state || user.state,
                 lga: body.lga || user.lga,

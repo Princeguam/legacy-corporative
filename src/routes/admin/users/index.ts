@@ -17,6 +17,7 @@ import {
     kDefaultMaxQueryCount,
     $Enums,
     kDefaultAllQueryPage,
+    kDefaultSaltRounds,
 } from "../../../constants/index.js";
 import {
     sendResponse,
@@ -28,6 +29,7 @@ import {
     parseMoneyAmount,
 } from "../../../utilites/index.js";
 import humps from "humps";
+import { hash } from "bcrypt";
 
 import AdminUserIDRoute from "./[userId]/index.js";
 
@@ -169,6 +171,167 @@ AdminUserRoute.get(
                     totalItems: totalItems,
                     pageData,
                 },
+                undefined,
+            ),
+        );
+    }),
+);
+
+AdminUserRoute.get(
+    "/no",
+    asyncHandler(async (req: Request, res: Response) => {
+        let users = await prismaClient.users.findMany({
+            where: {
+                isActive: true,
+                isDeleted: false,
+            },
+            select: {
+                id: true,
+                fullName: true,
+                email: true,
+                phoneNo: true,
+            },
+        });
+
+        res.status(200).json(
+            sendResponse(
+                true,
+                kDefaultSuccessMessage,
+                humps.camelizeKeys(users),
+                undefined,
+            ),
+        );
+    }),
+);
+
+AdminUserRoute.post(
+    "/",
+    asyncHandler(async (req: Request, res: Response) => {
+        let userId = req.store.get(kUserIdStoreKey);
+        let userRole = req.store.get(kUserRoleStoreKey);
+
+        let body = req.body ?? {};
+
+        if (!body.firstName) {
+            let { statusCode, message, errorCode } = HandleServerError(
+                ErrorType.FirstNameMissing,
+            );
+            res.status(statusCode).json(
+                sendResponse(false, message, undefined, errorCode),
+            );
+            return;
+        }
+
+        if (!body.lastName) {
+            let { statusCode, message, errorCode } = HandleServerError(
+                ErrorType.LastNameMissing,
+            );
+            res.status(statusCode).json(
+                sendResponse(false, message, undefined, errorCode),
+            );
+            return;
+        }
+
+        if (!body.email) {
+            let { statusCode, message, errorCode } = HandleServerError(
+                ErrorType.EmailMissing,
+            );
+            res.status(statusCode).json(
+                sendResponse(false, message, undefined, errorCode),
+            );
+            return;
+        }
+
+        if (!body.phoneNo) {
+            let { statusCode, message, errorCode } = HandleServerError(
+                ErrorType.PhoneNoMissing,
+            );
+            res.status(statusCode).json(
+                sendResponse(false, message, undefined, errorCode),
+            );
+            return;
+        }
+
+        let emailExist = await prismaClient.users.findFirst({
+            where: {
+                email: body.email,
+            },
+            select: { id: true },
+        });
+
+        if (emailExist) {
+            let { statusCode, message, errorCode } = HandleServerError(
+                ErrorType.EmailAlreadyExist,
+            );
+            res.status(statusCode).json(
+                sendResponse(false, message, undefined, errorCode),
+            );
+            return;
+        }
+
+        let phoneExist = await prismaClient.users.findFirst({
+            where: {
+                phoneNo: body.phoneNo,
+            },
+            select: { id: true },
+        });
+
+        if (phoneExist) {
+            let { statusCode, message, errorCode } = HandleServerError(
+                ErrorType.PhoneNoAlreadyExist,
+            );
+            res.status(statusCode).json(
+                sendResponse(false, message, undefined, errorCode),
+            );
+            return;
+        }
+
+        let tempPassword = process.env.TEMP_PASSWORD;
+
+        if (!tempPassword) {
+            let { statusCode, message, errorCode } = HandleServerError(
+                ErrorType.PhoneNoMissing,
+            );
+            res.status(statusCode).json(
+                sendResponse(false, message, undefined, errorCode),
+            );
+            return;
+        }
+
+        let hashedPassword = await hash(tempPassword, kDefaultSaltRounds);
+
+        let member = await prismaClient.users.create({
+            data: {
+                firstName: body.firstName,
+                middleName: body.middleName,
+                lastName: body.lastName,
+                fullName: `${body.firstName} ${body.lastName} ${body.middleName}`,
+                email: body.email,
+                phoneNo: body.phoneNo,
+                dob: body.dob ? new Date(body.dob) : null,
+                occupation: body.occupation,
+                nextOfKinName: body.nextOfKinName,
+                nextOfKinPhone: body.nextOfKinPhone,
+                nextOfKinRelationship: body.nextOfKinRelationship,
+                emergencyContact: body.emergencyContact,
+                emergencyContactPhone: body.emergencyContactPhone,
+                emergencyContactRelationship: body.emergencyContactRelationship,
+                address: body.address,
+                password: hashedPassword,
+                state: body.state,
+                lga: body.lga,
+                gender: body.gender,
+                passport: body.passport,
+                role: $Enums.UserRole.User,
+            },
+            select: $Types.users,
+        });
+
+        res.status(200).json(
+            sendResponse(
+                true,
+                kDefaultSuccessMessage,
+                humps.camelizeKeys(member),
                 undefined,
             ),
         );

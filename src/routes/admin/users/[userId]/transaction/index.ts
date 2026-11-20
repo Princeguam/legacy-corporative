@@ -86,6 +86,8 @@ AdminUserIDTransactionRoute.get(
             url.searchParams.get("all") && parseBoolean(req.query.all);
 
         let from = parseDateRangeValue(String(req.query.from));
+
+        console.log(from);
         let to = parseDateRangeValue(String(req.query.to), true);
         if (from && to && from > to) {
             from = undefined;

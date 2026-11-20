@@ -19,3 +19,8 @@ export const kDefaultApiVersion = "v1";
 export const kFileFormDataKey = "files";
 export const kDefaultFileContentType = "application/octet-stream";
 export const kBaseName = "Legacy Wealth";
+export const kDefaultBucketName = "legacy-wealth-2026-11-19T18-39-32-889Z";
+export const kBrandLogo =
+    "https://legacy-wealth-2026-11-19T18-39-32-889Z.s3.eu-central-003.backblazeb2.com/uploads/1795132115776-YWM1Hps9zw3EyEiFn7BqI-png";
+export const kBrandLogoWatermark =
+    "https://legacy-wealth-2026-11-19T18-39-32-889Z.s3.eu-central-003.backblazeb2.com/uploads/1795133547297-m7pu4nP8El7cQKxAHctba-png";

@@ -35,6 +35,18 @@ export const ErrorType = {
     CategoryMissing: 1034,
     FeedbackIDMissing: 1035,
     FeedbackNotFound: 1036,
+    FirstNameMissing: 1037,
+    LastNameMissing: 1038,
+    PhoneNoMissing: 1039,
+    TempPasswordMising: 1040,
+    FileMissing: 1041,
+    BankNameMissing: 1042,
+    BankAccountNumberMissing: 1043,
+    BankAccountNameMissing: 1044,
+    BankAccountAlreadyExist: 1045,
+    BankAccountNumberAlreadyExist: 1046,
+    OldPasswordMissing: 1047,
+    NewPasswordMissing: 1048,
 };
 
 interface ErrorResponse {
@@ -249,10 +261,82 @@ export function HandleServerError(type: number): ErrorResponse {
                 message: "Feedback ID Not Provided",
                 statusCode: 400,
             };
+        case ErrorType.FirstNameMissing:
+            return {
+                errorCode: type,
+                message: "First Name Missing",
+                statusCode: 400,
+            };
+        case ErrorType.LastNameMissing:
+            return {
+                errorCode: type,
+                message: "Last Name Missing",
+                statusCode: 400,
+            };
+        case ErrorType.PhoneNoMissing:
+            return {
+                errorCode: type,
+                message: "Phone Number Missing",
+                statusCode: 400,
+            };
+        case ErrorType.TempPasswordMising:
+            return {
+                errorCode: type,
+                message: "Temp Password Not Loaded From env",
+                statusCode: 400,
+            };
+        case ErrorType.FileMissing:
+            return {
+                errorCode: type,
+                message: "File Missing",
+                statusCode: 400,
+            };
         case ErrorType.FeedbackNotFound:
             return {
                 errorCode: type,
                 message: "Feedback Not Found",
+                statusCode: 400,
+            };
+        case ErrorType.BankNameMissing:
+            return {
+                errorCode: type,
+                message: "Bank Account Name Missing",
+                statusCode: 400,
+            };
+        case ErrorType.BankAccountNameMissing:
+            return {
+                errorCode: type,
+                message: "Account Name Missing",
+                statusCode: 400,
+            };
+        case ErrorType.BankAccountNumberMissing:
+            return {
+                errorCode: type,
+                message: "Bank Account Number Missing",
+                statusCode: 400,
+            };
+        case ErrorType.BankAccountAlreadyExist:
+            return {
+                errorCode: type,
+                message: "Bank Account Number Missing",
+                statusCode: 400,
+            };
+        case ErrorType.BankAccountNumberAlreadyExist:
+            return {
+                errorCode: type,
+                message: "Bank Account Already Exist With The Account Number",
+                statusCode: 400,
+            };
+        case ErrorType.OldPasswordMissing:
+            return {
+                errorCode: type,
+                message: "Old Password Not Provided",
+                statusCode: 400,
+            };
+        case ErrorType.NewPasswordMissing:
+            return {
+                errorCode: type,
+                message: "New Password Not Provided",
                 statusCode: 400,
             };
         default:

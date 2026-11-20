@@ -89,7 +89,7 @@ export function parseDateRangeValue(value: string, endOfRange = false) {
     const input = value.trim();
     if (!input) return undefined;
     const date = convertToNativeDate(input);
-    if (!exports.isValidDate(date)) return undefined;
+    if (!isValidDate(date)) return undefined;
 
     if (/^\d{4}-\d{2}-\d{2}$/.test(input)) {
         if (date.toISOString().slice(0, 10) !== input) return undefined;

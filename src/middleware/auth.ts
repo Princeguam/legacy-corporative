@@ -22,6 +22,10 @@ export function auth() {
     return asyncHandler(
         async (req: Request, res: Response, next: NextFunction) => {
             const authHeader = req.headers.authorization;
+            let url = new URL(
+                req.url || String(),
+                `http://${req.headers.host}`,
+            );
             let now = new Date();
 
             if (!authHeader) {
@@ -52,12 +56,14 @@ export function auth() {
                 if (!decoded.value) {
                     throw new Error();
                 }
-                let { userId, expiresIn } = JSON.parse(decoded.value);
+                let { userId, expiresIn, isRefreshToken } = JSON.parse(
+                    decoded.value,
+                );
 
-                if (!userId || !expiresIn) {
+                if (!userId || !expiresIn || isRefreshToken) {
                     throw new Error();
                 }
-                if (isAfter(Date.now(), expiresIn)) {
+                if (isAfter(Date.now(), toDate(expiresIn))) {
                     let { statusCode, message, errorCode } = HandleServerError(
                         ErrorType.AuthorizationExpired,
                     );

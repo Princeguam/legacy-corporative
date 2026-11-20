@@ -2,9 +2,17 @@ import "dotenv/config";
 import express, { type Request, type Response } from "express";
 import { requestTempStore } from "./middleware/index.js";
 import V1Route from "./routes/index.js";
+import cors from "cors";
 
 const app = express();
 const PORT = process.env.PORT;
+
+app.use(
+    cors({
+        origin: ["https://legacywealth.com.ng", "http://localhost:5173"],
+        credentials: true,
+    }),
+);
 
 app.use(express.json());
 app.use(requestTempStore());

@@ -18,6 +18,10 @@ import {
     $Enums,
     kDefaultAllQueryPage,
     kDefaultSaltRounds,
+    kAppUrl,
+    kBaseName,
+    kBrandLogo,
+    kBrandLogoWatermark,
 } from "../../../constants/index.js";
 import {
     sendResponse,
@@ -27,9 +31,11 @@ import {
     getSkippedPrismaValue,
     Prisma,
     parseMoneyAmount,
+    sendEmail,
 } from "../../../utilites/index.js";
 import humps from "humps";
 import { hash } from "bcrypt";
+import { createMemberEmail } from "../../../constants/templates/member-email.js";
 
 import AdminUserIDRoute from "./[userId]/index.js";
 
@@ -327,6 +333,182 @@ AdminUserRoute.post(
             select: $Types.users,
         });
 
+        let temporaryPassword = process.env.TEMP_PASSWORD || "Password@123";
+
+        const message = createMemberEmail(
+            {
+                to: member.email,
+                recipientName: member?.fullName ?? member.firstName,
+                subject: "Welcome to Legacy Wealth Cooperatives",
+                title: "Welcome to Legacy Wealth Cooperatives",
+
+                richBody: [
+                    {
+                        type: "paragraph",
+                        content: [
+                            { type: "text", value: "Dear " },
+                            {
+                                type: "text",
+                                value: member?.fullName ?? member.firstName,
+                                bold: true,
+                            },
+                            { type: "text", value: "," },
+                        ],
+                    },
+                    {
+                        type: "paragraph",
+                        content: [
+                            {
+                                type: "text",
+                                value: "We are delighted to welcome you to ",
+                            },
+                            {
+                                type: "text",
+                                value: "Legacy Wealth Cooperatives",
+                                bold: true,
+                            },
+                            {
+                                type: "text",
+                                value: "! We're excited to have you on board and look forward to making your experience with us valuable and rewarding.",
+                            },
+                        ],
+                    },
+                    {
+                        type: "paragraph",
+                        content: [
+                            {
+                                type: "text",
+                                value: "Our platform is currently under active development as we continue working to improve the system and introduce more features that will make managing and accessing your cooperative services easier and more convenient.",
+                            },
+                        ],
+                    },
+                    {
+                        type: "paragraph",
+                        content: [
+                            {
+                                type: "text",
+                                value: "As we continue building, your feedback is important to us. We would greatly appreciate hearing your thoughts, suggestions, and any features you would like to see on the platform. Your input will help us shape the system to better meet your needs.",
+                            },
+                        ],
+                    },
+                    {
+                        type: "heading",
+                        content: [{ type: "text", value: "Getting Started" }],
+                    },
+                    {
+                        type: "paragraph",
+                        content: [
+                            {
+                                type: "text",
+                                value: "You can now visit our website and log in to your account using the credentials provided below:",
+                            },
+                        ],
+                    },
+                    {
+                        type: "list",
+                        items: [
+                            [
+                                {
+                                    type: "text",
+                                    value: "Website: ",
+                                    bold: true,
+                                },
+                                {
+                                    type: "text",
+                                    value: kAppUrl,
+                                    color: "primary",
+                                },
+                            ],
+                            [
+                                {
+                                    type: "text",
+                                    value: "Email: ",
+                                    bold: true,
+                                },
+                                {
+                                    type: "text",
+                                    value: member.email,
+                                    bold: true,
+                                },
+                            ],
+                            [
+                                {
+                                    type: "text",
+                                    value: "Temporary Password: ",
+                                    bold: true,
+                                },
+                                {
+                                    type: "text",
+                                    value: temporaryPassword,
+                                    bold: true,
+                                    color: "primary",
+                                },
+                            ],
+                        ],
+                    },
+                    {
+                        type: "paragraph",
+                        content: [
+                            {
+                                type: "text",
+                                value: "For your account security, please log in using your temporary password and change it immediately to a new, secure password of your choice.",
+                            },
+                        ],
+                    },
+                    {
+                        type: "paragraph",
+                        content: [
+                            {
+                                type: "text",
+                                value: "We will continue rolling out additional features and improvements over time, and we encourage you to visit the platform regularly to stay up to date with what's new.",
+                            },
+                        ],
+                    },
+                    {
+                        type: "paragraph",
+                        content: [
+                            {
+                                type: "text",
+                                value: "Thank you for being part of Legacy Wealth Cooperatives. We appreciate your trust and look forward to growing together.",
+                            },
+                        ],
+                    },
+                    {
+                        type: "paragraph",
+                        content: [{ type: "text", value: "Warm regards," }],
+                    },
+                    {
+                        type: "paragraph",
+                        content: [
+                            {
+                                type: "text",
+                                value: "Legacy Wealth Cooperatives",
+                                bold: true,
+                            },
+                        ],
+                    },
+                    {
+                        type: "paragraph",
+                        content: [
+                            {
+                                type: "text",
+                                value: "Rooted in trust. Growing together.",
+                                italic: true,
+                                color: "muted",
+                            },
+                        ],
+                    },
+                ],
+            },
+
+            {
+                images: {
+                    logo: kBrandLogo,
+                    watermark: kBrandLogoWatermark,
+                },
+            },
+        );
+        sendEmail(message.to, message.subject, message.html);
         res.status(200).json(
             sendResponse(
                 true,

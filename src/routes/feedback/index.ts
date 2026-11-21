@@ -72,21 +72,50 @@ FeedbackRoute.post(
             return;
         }
 
-        let feedback = await prismaClient.feedbacks.create({
-            data: {
-                subject: body.subject,
-                message: body.message,
-                category: body.category,
-                userId: userId,
-            },
-            select: $Types.feedback,
+        if (body.images !== undefined && !Array.isArray(body.images)) {
+            let { statusCode, message, errorCode } = HandleServerError(
+                ErrorType.InvalidInput,
+            );
+            res.status(statusCode).json(
+                sendResponse(false, message, undefined, errorCode),
+            );
+            return;
+        }
+
+        let images = body.images;
+
+        let transact = await prismaClient.$transaction(async (tx) => {
+            let feedback = await tx.feedbacks.create({
+                data: {
+                    subject: body.subject,
+                    message: body.message,
+                    category: body.category,
+                    userId: userId,
+                },
+                select: { id: true },
+            });
+
+            await tx.feedbackImages.createMany({
+                data: images.map((i: any, index: any) => ({
+                    imageUrl: i,
+                    feedbackId: feedback.id,
+                    caption: `Image ${index}`,
+                })),
+            });
+
+            return await tx.feedbacks.findFirst({
+                where: {
+                    id: feedback.id,
+                },
+                select: $Types.feedback,
+            });
         });
 
         res.status(200).json(
             sendResponse(
                 true,
                 kDefaultSuccessMessage,
-                humps.camelizeKeys(feedback),
+                humps.camelizeKeys(transact),
                 undefined,
             ),
         );

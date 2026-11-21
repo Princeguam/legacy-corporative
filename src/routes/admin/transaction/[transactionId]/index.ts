@@ -13,6 +13,7 @@ import {
     kDefaultMaxQueryCount,
     $Enums,
     kDefaultAllQueryPage,
+    kNotificationTitle,
 } from "../../../../constants/index.js";
 import {
     sendResponse,
@@ -111,26 +112,40 @@ AdminTransactionIDRoute.put(
         }
 
         let isAccepted = parseBoolean(body.isAccepted) ? true : false;
+        let transact = await prismaClient.$transaction(async (tx) => {
+            let updated = await tx.paymentTransactions.update({
+                where: {
+                    id: transactionId,
+                },
+                data: {
+                    status: isAccepted
+                        ? $Enums.TransactionStatus.CONFIRMED
+                        : $Enums.TransactionStatus.REJECTED,
+                    reviewedById: userId,
+                    reviewedAt: now,
+                },
+                select: $Types.paymentTransactions,
+            });
 
-        let updated = await prismaClient.paymentTransactions.update({
-            where: {
-                id: transactionId,
-            },
-            data: {
-                status: isAccepted
-                    ? $Enums.TransactionStatus.CONFIRMED
-                    : $Enums.TransactionStatus.REJECTED,
-                reviewedById: userId,
-                reviewedAt: now,
-            },
-            select: $Types.paymentTransactions,
+            await tx.notifications.create({
+                data: {
+                    userId: transaction.userId,
+                    type: isAccepted
+                        ? $Enums.NotificationType.Deposit_Approved
+                        : $Enums.NotificationType.Deposit_Rejected,
+                    title: isAccepted
+                        ? kNotificationTitle.Transaction.DepositApproved
+                        : kNotificationTitle.Transaction.DepositRejected,
+                    body: `Your deposit of ${(updated.amount, 1n) / 100n} has been ${isAccepted ? "accepted" : "rejected"}`,
+                },
+            });
         });
 
         res.status(200).json(
             sendResponse(
                 true,
                 kDefaultSuccessMessage,
-                humps.camelizeKeys(updated),
+                humps.camelizeKeys(transact),
                 undefined,
             ),
         );

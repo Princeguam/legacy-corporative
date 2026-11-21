@@ -17,6 +17,7 @@ import {
     kDefaultMaxQueryCount,
     $Enums,
     kDefaultAllQueryPage,
+    kNotificationTitle,
 } from "../../constants/index.js";
 import {
     sendResponse,
@@ -223,29 +224,53 @@ TransactionRoute.post(
             return;
         }
 
-        let newPayment = await prismaClient.paymentTransactions.create({
-            data: {
-                bankAccountId: bankAccountId,
-                userId: userId,
-                status: $Enums.TransactionStatus.PENDING,
-                type: $Enums.TransactionType.DEPOSIT,
-                amount: amount,
-                note: body.note,
-                source: $Enums.TransactionSource.User,
-                attachmentUrl: body.attachmentUrl,
-                period: period,
-                depositedAt: body.depositedAt
-                    ? new Date(body.depositedAt)
-                    : now,
+        let activeAdmins = await prismaClient.users.findMany({
+            where: {
+                isActive: true,
+                isAdmin: true,
+                role: $Enums.UserRole.Admin,
             },
-            select: $Types.paymentTransactions,
+            select: { id: true },
+        });
+
+        let transact = await prismaClient.$transaction(async (tx) => {
+            let newPayment = await tx.paymentTransactions.create({
+                data: {
+                    bankAccountId: bankAccountId,
+                    userId: userId,
+                    status: $Enums.TransactionStatus.PENDING,
+                    type: $Enums.TransactionType.DEPOSIT,
+                    amount: amount,
+                    note: body.note,
+                    source: $Enums.TransactionSource.User,
+                    attachmentUrl: body.attachmentUrl,
+                    period: period,
+                    depositedAt: body.depositedAt
+                        ? new Date(body.depositedAt)
+                        : now,
+                },
+                select: $Types.paymentTransactions,
+            });
+
+            for (let admin of activeAdmins) {
+                await tx.notifications.create({
+                    data: {
+                        userId: admin.id,
+                        type: $Enums.NotificationType.Deposit,
+                        title: kNotificationTitle.Transaction.DepositMade,
+                        body: `A deposit of ${(newPayment.amount + 1n) / 100n} has been deposited by ${newPayment.depositedBy.fullName}. Click to review the transaction`,
+                    },
+                });
+            }
+
+            return newPayment;
         });
 
         res.status(200).json(
             sendResponse(
                 true,
                 kDefaultSuccessMessage,
-                humps.camelizeKeys(newPayment),
+                humps.camelizeKeys(transact),
                 undefined,
             ),
         );

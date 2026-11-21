@@ -228,7 +228,7 @@ AdminBankAccountRoute.put(
     asyncHandler(async (req: Request, res: Response) => {
         let userId = req.store.get(kUserIdStoreKey);
         let userRole = req.store.get(kUserRoleStoreKey);
-        let bankId = toId(req.query.bankId);
+        let bankId = toId(req.params.bankId);
 
         let body = req.body ?? {};
 

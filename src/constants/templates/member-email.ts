@@ -3,18 +3,42 @@ import { Buffer } from "node:buffer";
 /**
  * Standalone backend member email template.
  * Returns { to, subject, html, text, attachments }; spread into your mail sender.
- * Body is plain text (paragraphs or newline-separated text); all input is escaped.
+ * Supports plain-text body paragraphs or validated structured richBody blocks.
+ * All user-supplied text is escaped; rich formatting is generated from an allowlist.
  * Tables, inline styles, PNG CID attachments, Outlook conditional wrappers, and
  * safe system-font fallbacks target Gmail, Outlook, Apple Mail and other clients.
  * Only the backend sends mail.
  */
 
-type EmailBody = string | readonly string[];
+export type EmailBody = string | readonly string[];
+
+export type EmailTextNode = {
+    type: "text";
+    value: string;
+    bold?: boolean;
+    italic?: boolean;
+    underline?: boolean;
+    color?: "primary" | "muted" | "success" | "danger";
+};
+
+export type EmailBlock =
+    | { type: "paragraph"; content: readonly EmailTextNode[] }
+    | { type: "heading"; content: readonly EmailTextNode[] }
+    | {
+          type: "list";
+          ordered?: boolean;
+          items: readonly (readonly EmailTextNode[])[];
+      }
+    | { type: "button"; label: string; url: string }
+    | { type: "spacer" };
 
 export type MemberEmailInput = {
     subject: string;
     recipientName: string;
-    body: EmailBody;
+    /** Plain-text content. Use this or richBody, but not both. */
+    body?: EmailBody;
+    /** Optional structured content for explicitly formatted email sections. */
+    richBody?: readonly EmailBlock[];
     title: string;
     to: string;
 };
@@ -52,9 +76,24 @@ export function createMemberEmail(
     const subject = headerText(input.subject, "subject");
     const title = headerText(input.title, "title");
     const name = headerText(input.recipientName, "recipientName");
-    const paragraphs = bodyParagraphs(input.body);
+    const hasBody = input.body !== undefined;
+    const hasRichBody = input.richBody !== undefined;
+    if (hasBody === hasRichBody) {
+        throw new TypeError("Provide exactly one of body or richBody.");
+    }
+
+    const paragraphs = hasBody ? bodyParagraphs(input.body!) : undefined;
+    const richBlocks = hasRichBody
+        ? richBodyBlocks(input.richBody!)
+        : undefined;
     const greeting = `Dear ${name},`;
-    const content = [greeting, ...paragraphs].map(paragraph).join("\n");
+    const content = [
+        // paragraph(greeting),
+        hasBody
+            ? paragraphs!.map(paragraph).join("\n")
+            : renderRichBody(richBlocks!),
+    ].join("\n");
+    const plainBody = paragraphs ?? richBodyToText(richBlocks!);
     return checkedEmail({
         attachments: inlineImages(options),
         to,
@@ -72,7 +111,7 @@ export function createMemberEmail(
             BRAND_NAME,
             title,
             greeting,
-            ...paragraphs,
+            ...plainBody,
             EMAIL_COPY.signoff,
             BRAND_NAME,
             EMAIL_COPY.tagline,
@@ -213,6 +252,193 @@ function bodyParagraphs(body: EmailBody): string[] {
     return paragraphs;
 }
 
+const RICH_TEXT_COLOURS = {
+    primary: COLOURS["text-primary"],
+    muted: "#647A78",
+    success: "#16794B",
+    danger: "#B42318",
+} as const;
+
+function richTextNodes(value: unknown, field: string): EmailTextNode[] {
+    if (!Array.isArray(value) || value.length === 0) {
+        throw new TypeError(`${field} must be a nonempty array of text nodes.`);
+    }
+    return value.map((node, index) => {
+        if (
+            !node ||
+            typeof node !== "object" ||
+            (node as EmailTextNode).type !== "text"
+        ) {
+            throw new TypeError(`${field}[${index}] must be a text node.`);
+        }
+        const item = node as EmailTextNode;
+        requiredText(item.value, `${field}[${index}].value`);
+        const text = item.value;
+        for (const key of ["bold", "italic", "underline"] as const) {
+            if (item[key] !== undefined && typeof item[key] !== "boolean") {
+                throw new TypeError(
+                    `${field}[${index}].${key} must be a boolean.`,
+                );
+            }
+        }
+        if (
+            item.color !== undefined &&
+            !Object.prototype.hasOwnProperty.call(RICH_TEXT_COLOURS, item.color)
+        ) {
+            throw new TypeError(`${field}[${index}].color is not supported.`);
+        }
+        return {
+            type: "text",
+            value: text,
+            ...(item.bold !== undefined ? { bold: item.bold } : {}),
+            ...(item.italic !== undefined ? { italic: item.italic } : {}),
+            ...(item.underline !== undefined
+                ? { underline: item.underline }
+                : {}),
+            ...(item.color !== undefined ? { color: item.color } : {}),
+        };
+    });
+}
+
+function richBodyBlocks(value: unknown): EmailBlock[] {
+    if (!Array.isArray(value) || value.length === 0) {
+        throw new TypeError(
+            "richBody must be a nonempty array of email blocks.",
+        );
+    }
+    return value.map((block, index) => {
+        if (
+            !block ||
+            typeof block !== "object" ||
+            typeof (block as EmailBlock).type !== "string"
+        ) {
+            throw new TypeError(`richBody[${index}] must be an email block.`);
+        }
+        const item = block as EmailBlock;
+        switch (item.type) {
+            case "paragraph":
+            case "heading":
+                return {
+                    type: item.type,
+                    content: richTextNodes(
+                        item.content,
+                        `richBody[${index}].content`,
+                    ),
+                };
+            case "list":
+                if (!Array.isArray(item.items) || item.items.length === 0) {
+                    throw new TypeError(
+                        `richBody[${index}].items must be a nonempty array.`,
+                    );
+                }
+                if (
+                    item.ordered !== undefined &&
+                    typeof item.ordered !== "boolean"
+                ) {
+                    throw new TypeError(
+                        `richBody[${index}].ordered must be a boolean.`,
+                    );
+                }
+                return {
+                    type: "list",
+                    ordered: item.ordered === true,
+                    items: item.items.map((entry, itemIndex) =>
+                        richTextNodes(
+                            entry,
+                            `richBody[${index}].items[${itemIndex}]`,
+                        ),
+                    ),
+                };
+            case "button": {
+                const label = headerText(
+                    item.label,
+                    `richBody[${index}].label`,
+                );
+                const url = headerText(item.url, `richBody[${index}].url`);
+                const parsed = new URL(url);
+                if (
+                    parsed.protocol !== "https:" ||
+                    parsed.username ||
+                    parsed.password
+                ) {
+                    throw new TypeError(
+                        "Rich email buttons must use absolute HTTPS URLs without credentials.",
+                    );
+                }
+                return { type: "button", label, url: parsed.href };
+            }
+            case "spacer":
+                return { type: "spacer" };
+            default:
+                throw new TypeError(
+                    `richBody[${index}].type is not supported.`,
+                );
+        }
+    });
+}
+
+function renderRichText(nodes: readonly EmailTextNode[]): string {
+    return nodes
+        .map((node) => {
+            let result = escapeHtml(node.value)
+                .replace(/\r\n?/g, "\n")
+                .replace(/\n/g, "<br>");
+            if (node.bold) result = `<strong>${result}</strong>`;
+            if (node.italic) result = `<em>${result}</em>`;
+            if (node.underline) result = `<u>${result}</u>`;
+            if (node.color)
+                result = `<span style="color:${RICH_TEXT_COLOURS[node.color]};">${result}</span>`;
+            return result;
+        })
+        .join("");
+}
+
+function renderRichBody(blocks: readonly EmailBlock[]): string {
+    return blocks
+        .map((block) => {
+            switch (block.type) {
+                case "paragraph":
+                    return `<p style="margin:0 0 ${SPACE.large}px;${TEXT_STYLE}word-break:break-word;overflow-wrap:anywhere;">${renderRichText(block.content)}</p>`;
+                case "heading":
+                    return `<h2 style="margin:0 0 ${SPACE.medium}px;font-family:${uiFont};font-size:${TYPE.title.size}px;line-height:${TYPE.title.line}px;font-weight:600;color:${COLOURS["text-primary"]};">${renderRichText(block.content)}</h2>`;
+                case "list": {
+                    const tag = block.ordered ? "ol" : "ul";
+                    const items = block.items
+                        .map(
+                            (item) =>
+                                `<li style="margin:0 0 ${SPACE.small}px;${TEXT_STYLE}">${renderRichText(item)}</li>`,
+                        )
+                        .join("");
+                    return `<${tag} style="margin:0 0 ${SPACE.large}px;padding-left:24px;">${items}</${tag}>`;
+                }
+                case "button":
+                    return `<p style="margin:0 0 ${SPACE.large}px;"><a href="${escapeHtml(block.url)}" style="display:inline-block;padding:12px 20px;background-color:${COLOURS["action-default"]};color:#FFFFFF;text-decoration:none;font-family:${uiFont};font-size:${TYPE.label.size}px;line-height:${TYPE.label.line}px;font-weight:600;border-radius:6px;">${escapeHtml(block.label)}</a></p>`;
+                case "spacer":
+                    return `<div style="height:${SPACE.large}px;line-height:${SPACE.large}px;font-size:1px;">&nbsp;</div>`;
+            }
+        })
+        .join("\n");
+}
+
+function richBodyToText(blocks: readonly EmailBlock[]): string[] {
+    return blocks.flatMap((block) => {
+        switch (block.type) {
+            case "paragraph":
+            case "heading":
+                return [block.content.map((node) => node.value).join("")];
+            case "list":
+                return block.items.map(
+                    (item, index) =>
+                        `${block.ordered ? `${index + 1}.` : "•"} ${item.map((node) => node.value).join("")}`,
+                );
+            case "button":
+                return [`${block.label}: ${block.url}`];
+            case "spacer":
+                return [];
+        }
+    });
+}
+
 function imageSource(value: unknown): string {
     const source = headerText(value, "image source");
     if (source === DEFAULT_IMAGES.logo || source === DEFAULT_IMAGES.watermark)
@@ -289,11 +515,9 @@ ${preview}
 <p style="margin:0 0 ${SPACE.small}px;${LABEL_STYLE}">${escapeHtml(eyebrow)}</p>
 <h1 style="margin:0 0 ${SPACE.section}px;font-family:${uiFont};font-size:${TYPE.heading.size}px;line-height:${TYPE.heading.line}px;font-weight:${TYPE.heading.weight};color:${COLOURS["text-primary"]};word-break:break-word;overflow-wrap:anywhere;">${escapeHtml(title)}</h1>
 ${content}
-<p style="margin:${SPACE.section}px 0 ${SPACE.large}px;${TEXT_STYLE}">${escapeHtml(EMAIL_COPY.signoff)}<br>${escapeHtml(BRAND_NAME)}</p>
 </td></tr>
 <tr><td><img src="${watermark}" width="${WATERMARK_SIZE.width}" height="${WATERMARK_SIZE.height}" alt="" role="presentation" style="display:block;width:100%;max-width:${WATERMARK_SIZE.width}px;height:auto;"></td></tr>
 <tr><td class="content-pad" bgcolor="${COLOURS["surface-raised"]}" style="padding:${SPACE.large}px ${SPACE.section}px;${TEXT_STYLE}background-color:${COLOURS["surface-raised"]};">
-<p style="margin:0 0 ${SPACE.small}px;${LABEL_STYLE}">${escapeHtml(EMAIL_COPY.tagline)}</p>
 <p style="margin:0 0 ${SPACE.small}px;${TEXT_STYLE}word-break:break-word;overflow-wrap:anywhere;">Sent to ${escapeHtml(to)}.</p>
 <p style="margin:0;${TEXT_STYLE}">${escapeHtml(EMAIL_COPY.support)}</p>
 </td></tr></table>

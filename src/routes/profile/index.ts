@@ -13,6 +13,7 @@ import {
     $Types,
     kBrandLogo,
     kBrandLogoWatermark,
+    kAppUrl,
 } from "../../constants/index.js";
 import { sendResponse } from "../../utilites/sendResponse.js";
 import { prismaClient } from "../../utilites/prismaClient.js";
@@ -62,25 +63,6 @@ ProfileRoute.get(
             );
             return;
         }
-
-        const message = createMemberEmail(
-            {
-                subject: "This is me testing",
-                title: "This is the test title",
-                recipientName: userExist.firstName,
-                to: "okogbulegoodluck@gmail.com",
-                body: [
-                    "This is the email i want to send to you ",
-
-                    "I am trying out how it would look if i wanted to show something to you",
-
-                    "There's no way to perform forgot password for now, so please dont forget your passwords",
-                ],
-            },
-            { images: { logo: kBrandLogo, watermark: kBrandLogoWatermark } },
-        );
-
-        sendEmail(message.to, message.subject, message.html);
 
         res.status(200).json(
             sendResponse(

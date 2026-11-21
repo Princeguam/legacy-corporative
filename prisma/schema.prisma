@@ -47,6 +47,7 @@ enum TransactionSource {
 enum NotificationType {
   Deposit_Approved
   Deposit_Rejected
+  Deposit
   Dues
   Fine
   General
@@ -190,9 +191,20 @@ model Feedbacks {
   responded   DateTime?
   created     DateTime         @default(now())
   updated     DateTime         @updatedAt
-  member      Users            @relation(fields: [userId], references: [id])
+  member      Users            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  images      FeedbackImages[]
 
   @@index([userId])
+}
+
+model FeedbackImages {
+  id         Int      @id @default(autoincrement())
+  feedbackId Int
+  imageUrl   String
+  caption    String?
+  created    DateTime @default(now())
+
+  feedback Feedbacks @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
 }
 
 model Charges {

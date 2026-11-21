@@ -177,7 +177,7 @@ AdminUserIDRoute.put(
             },
             data: {
                 isActive: isAdmin,
-                role: $Enums.UserRole.Admin,
+                role: isAdmin ? $Enums.UserRole.Admin : $Enums.UserRole.User,
             },
             select: $Types.users,
         });
@@ -190,6 +190,46 @@ AdminUserIDRoute.put(
                 undefined,
             ),
         );
+    }),
+);
+
+AdminUserIDRoute.put(
+    "/:memberId/password",
+    asyncHandler(async (req: Request, res: Response) => {
+        let adminId = req.store.get(kUserIdStoreKey);
+        let userRole = req.store.get(kUserRoleStoreKey);
+        let memberId = toId(req.params.memberId);
+
+        let body = req.body ?? {};
+
+        if (!memberId) {
+            let { statusCode, message, errorCode } = HandleServerError(
+                ErrorType.UserIDMissing,
+            );
+            res.status(statusCode).json(
+                sendResponse(false, message, undefined, errorCode),
+            );
+            return;
+        }
+
+        let userExist = await prismaClient.users.findFirst({
+            where: {
+                id: memberId,
+            },
+            select: $Types.users,
+        });
+
+        if (!userExist) {
+            let { statusCode, message, errorCode } = HandleServerError(
+                ErrorType.PaymentNotFound,
+            );
+            res.status(statusCode).json(
+                sendResponse(false, message, undefined, errorCode),
+            );
+            return;
+        }
+
+        // come back here to finish the admin reset member password for them to now have access and go change their password
     }),
 );
 

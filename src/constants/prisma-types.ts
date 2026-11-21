@@ -22,6 +22,7 @@ export const users = {
     role: true,
     isAdmin: true,
     isDeleted: true,
+    isActive: true,
     created: true,
     updated: true,
 };
@@ -83,5 +84,12 @@ export const feedback = {
     updated: true,
     member: {
         select: users,
+    },
+    images: {
+        select: {
+            id: true,
+            imageUrl: true,
+            caption: true,
+        },
     },
 };

@@ -24,7 +24,69 @@ const message = createMemberEmail({
 // await transporter.sendMail({ from: configuredSender, ...message })
 ```
 
-`body` accepts plain text or an array of text paragraphs. Blank lines separate paragraphs; single newlines become line breaks. All supplied text is HTML-escaped, so passing HTML displays that markup as text. `subject`, `title`, `recipientName` and `to` must be nonempty single-line strings; `to` accepts one email address.
+`body` accepts plain text or an array of text paragraphs. Blank lines separate paragraphs; single newlines become line breaks. All supplied text is HTML-escaped, so passing HTML displays that markup as text. For emails that need selective formatting, use `richBody` instead of `body`. Provide exactly one of these properties; supplying both or neither throws a `TypeError`. `subject`, `title`, `recipientName` and `to` must be nonempty single-line strings; `to` accepts one email address.
+
+### Rich member email content
+
+`richBody` is an array of structured blocks. It supports paragraphs, headings, ordered or unordered lists, HTTPS call-to-action buttons, and vertical spacers. Text inside paragraphs, headings and list items is supplied as text nodes, so formatting can be applied to only the required words or phrases. Supported text formatting is `bold`, `italic`, `underline`, and the semantic colors `primary`, `muted`, `success`, and `danger`. Arbitrary HTML and CSS are not accepted.
+
+```ts
+const message = createMemberEmail({
+  subject: 'Welcome to Legacy Wealth Cooperatives',
+  title: 'Welcome to Legacy Wealth Cooperatives',
+  recipientName: 'Samira Yusuf',
+  to: 'samira.yusuf@example.com',
+  richBody: [
+    {
+      type: 'paragraph',
+      content: [
+        { type: 'text', value: 'Your membership account has been created successfully.' },
+      ],
+    },
+    {
+      type: 'heading',
+      content: [
+        { type: 'text', value: 'Your login credentials' },
+      ],
+    },
+    {
+      type: 'paragraph',
+      content: [
+        { type: 'text', value: 'Email address: ', bold: true },
+        { type: 'text', value: 'samira.yusuf@example.com' },
+      ],
+    },
+    {
+      type: 'paragraph',
+      content: [
+        { type: 'text', value: 'Temporary password: ', bold: true },
+        { type: 'text', value: 'TempPassword123', bold: true, color: 'primary' },
+      ],
+    },
+    {
+      type: 'paragraph',
+      content: [
+        { type: 'text', value: 'Please change your temporary password immediately after signing in.', bold: true },
+      ],
+    },
+    {
+      type: 'button',
+      label: 'Sign in to your account',
+      url: 'https://your-domain.example/login',
+    },
+  ],
+})
+```
+
+Available block shapes:
+
+- `{ type: 'paragraph', content: EmailTextNode[] }`
+- `{ type: 'heading', content: EmailTextNode[] }`
+- `{ type: 'list', ordered?: boolean, items: EmailTextNode[][] }`
+- `{ type: 'button', label: string, url: string }` — the URL must be absolute HTTPS without embedded credentials.
+- `{ type: 'spacer' }`
+
+Each `EmailTextNode` has `type: 'text'` and a nonempty `value`, with optional `bold`, `italic`, `underline`, and `color` properties. Color must be one of `primary`, `muted`, `success`, or `danger`. The HTML renderer escapes every text value and generates only the supported markup with inline email-safe styles. The returned `text` alternative is generated from the same blocks, without visual formatting; buttons appear as their label followed by the URL. Existing plain-text `body` calls continue to work unchanged.
 
 ## Confirmed contribution receipt
 

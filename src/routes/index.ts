@@ -13,6 +13,8 @@ import UtilsRoute from "./utils/index.js";
 import AdminRoute from "./admin/index.js";
 import SettingsRoute from "./settings.js";
 import BankAccountRoute from "./bankAccount/index.js";
+import DuesRoute from "./utils/dues.js";
+import MeetingRoute from "./meeting/index.js";
 
 const V1Route = express.Router();
 
@@ -62,4 +64,6 @@ V1Route.use("/util", UtilsRoute);
 V1Route.use("/admin", AdminRoute);
 V1Route.use("/setting", SettingsRoute);
 V1Route.use("/bank", BankAccountRoute);
+V1Route.use("/due", DuesRoute);
+V1Route.use("/meeting", MeetingRoute);
 export default V1Route;

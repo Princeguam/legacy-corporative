@@ -22,11 +22,12 @@ import {
 import {
     sendResponse,
     prismaClient,
-    generatJwtToken,
     parseBoolean,
     getSkippedPrismaValue,
     Prisma,
     parseMoneyAmount,
+    parseDateRangeValue,
+    parseEnumList,
 } from "../../utilites/index.js";
 import bcrypt from "bcrypt";
 import humps from "humps";
@@ -62,6 +63,19 @@ TransactionRoute.get(
         let getAllRecord =
             url.searchParams.get("all") && parseBoolean(req.query.all);
 
+        let from = parseDateRangeValue(String(req.query.from));
+        let to = parseDateRangeValue(String(req.query.to), true);
+        if (from && to && from > to) {
+            from = undefined;
+            to = undefined;
+        }
+
+        let statuses = Object.values($Enums.TransactionStatus);
+        let selectedStatuses = parseEnumList(
+            String(req.query.status),
+            statuses,
+        );
+
         let searchOrderBy: ArrangeBy = "created";
         if (url.searchParams.has("by")) {
             let searchParamValue = url.searchParams.get("by") || "";
@@ -87,6 +101,36 @@ TransactionRoute.get(
         let whereClause: Prisma.PaymentTransactionsFindManyArgs["where"] = {
             userId: userId,
         };
+
+        if (from || to) {
+            whereClause.period = {};
+            if (from) whereClause.period.gte = from;
+            if (to) whereClause.period.lte = to;
+        }
+
+        if (selectedStatuses.length > 0) {
+            whereClause.status = { in: selectedStatuses };
+        }
+
+        if (search) {
+            let matchingStatuses = statuses.filter((status) =>
+                status.toLowerCase().includes(search.toLowerCase()),
+            );
+            whereClause.OR = [
+                {
+                    note: {
+                        contains: search,
+                        mode: "insensitive",
+                    },
+                },
+            ];
+
+            if (matchingStatuses.length > 0) {
+                whereClause.OR.push({
+                    status: { in: matchingStatuses },
+                });
+            }
+        }
 
         let [totalItems, transactions] = await prismaClient.$transaction([
             prismaClient.paymentTransactions.count({ where: whereClause }),
@@ -170,6 +214,48 @@ TransactionRoute.post(
             return;
         }
 
+        let dues: { id: number } | null;
+        if (body.duesTypeId) {
+            dues = await prismaClient.dueTypes.findFirst({
+                where: {
+                    id: body.duesTypeId,
+                },
+                select: { id: true },
+            });
+
+            if (!dues) {
+                let { statusCode, message, errorCode } = HandleServerError(
+                    ErrorType.DuesNotFound,
+                );
+                res.status(statusCode).json(
+                    sendResponse(false, message, undefined, errorCode),
+                );
+                return;
+            }
+        }
+
+        let charge: { id: number } | null;
+
+        if (body.chargeId) {
+            charge = await prismaClient.charges.findFirst({
+                where: {
+                    id: body.chargeId,
+                    userId: userId,
+                },
+                select: { id: true },
+            });
+
+            if (!charge) {
+                let { statusCode, message, errorCode } = HandleServerError(
+                    ErrorType.ChargeNotFound,
+                );
+                res.status(statusCode).json(
+                    sendResponse(false, message, undefined, errorCode),
+                );
+                return;
+            }
+        }
+
         let amount = parseMoneyAmount(body.amount, 0n);
         if (!amount) {
             let { statusCode, message, errorCode } = HandleServerError(
@@ -239,8 +325,14 @@ TransactionRoute.post(
                     bankAccountId: bankAccountId,
                     userId: userId,
                     status: $Enums.TransactionStatus.PENDING,
-                    type: $Enums.TransactionType.DEPOSIT,
+                    type: dues
+                        ? $Enums.TransactionType.DUES
+                        : charge
+                          ? $Enums.TransactionType.FINE_PAYMENT
+                          : $Enums.TransactionType.DEPOSIT,
                     amount: amount,
+                    chargeId: charge ? charge.id : null,
+                    duesTypeId: dues ? dues.id : null,
                     note: body.note,
                     source: $Enums.TransactionSource.User,
                     attachmentUrl: body.attachmentUrl,

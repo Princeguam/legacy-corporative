@@ -47,6 +47,11 @@ export const ErrorType = {
     BankAccountNumberAlreadyExist: 1046,
     OldPasswordMissing: 1047,
     NewPasswordMissing: 1048,
+    DuesNotFound: 1049,
+    ChargeNotFound: 1050,
+    NameMissing: 1051,
+    DescriptionMissing: 1052,
+    DueDateMissing: 1053,
 };
 
 interface ErrorResponse {
@@ -295,6 +300,36 @@ export function HandleServerError(type: number): ErrorResponse {
             return {
                 errorCode: type,
                 message: "Feedback Not Found",
+                statusCode: 400,
+            };
+        case ErrorType.DuesNotFound:
+            return {
+                errorCode: type,
+                message: "Dues Not Found",
+                statusCode: 400,
+            };
+        case ErrorType.ChargeNotFound:
+            return {
+                errorCode: type,
+                message: "Charge Not Found For User",
+                statusCode: 400,
+            };
+        case ErrorType.NameMissing:
+            return {
+                errorCode: type,
+                message: "Name Not Provided",
+                statusCode: 400,
+            };
+        case ErrorType.DescriptionMissing:
+            return {
+                errorCode: type,
+                message: "Description Not Provided",
+                statusCode: 400,
+            };
+        case ErrorType.DueDateMissing:
+            return {
+                errorCode: type,
+                message: "Due Date Not Provided",
                 statusCode: 400,
             };
         case ErrorType.BankNameMissing:

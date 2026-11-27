@@ -63,6 +63,22 @@ export const paymentTransactions = {
     },
 };
 
+export const charges = {
+    id: true,
+    userId: true,
+    reason: true,
+    status: true,
+    amount: true,
+    description: true,
+    period: true,
+    meetingId: true,
+    issuedBy: true,
+    waivedBy: true,
+    waivedAt: true,
+    created: true,
+    updated: true,
+};
+
 export const notifications = {
     id: true,
     userId: true,
@@ -91,5 +107,61 @@ export const feedback = {
             imageUrl: true,
             caption: true,
         },
+    },
+};
+
+export const duesTypes = {
+    id: true,
+    createdById: true,
+    name: true,
+    description: true,
+    amount: true,
+    dueDate: true,
+    isActive: true,
+    created: true,
+    updated: true,
+    createdBy: {
+        select: {
+            id: true,
+            fullName: true,
+            firstName: true,
+            lastName: true,
+            middelName: true,
+            passport: true,
+            email: true,
+        },
+    },
+};
+
+export const attendance = {
+    id: true,
+    meetingId: true,
+    userId: true,
+    status: true,
+    joinedAt: true,
+    joinCount: true,
+    created: true,
+    updated: true,
+    user: {
+        select: {
+            id: true,
+            firstName: true,
+            middleName: true,
+            lastName: true,
+            fullName: true,
+            passport: true,
+            gender: true,
+        },
+    },
+};
+export const meetings = {
+    id: true,
+    title: true,
+    meetingUrl: true,
+    heldAt: true,
+    created: true,
+    updated: true,
+    attendance: {
+        select: attendance,
     },
 };

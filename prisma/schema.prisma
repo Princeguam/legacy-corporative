@@ -37,6 +37,7 @@ enum TransactionType {
   WITHDRAWAL
   ADJUSTMENT
   FINE_PAYMENT
+  DUES
 }
 
 enum TransactionSource {
@@ -112,6 +113,7 @@ model Users {
   feedbacks             Feedbacks[]
   attendance            Attendance[]
   charges               Charges[]
+  dues                  DueTypes[]
 }
 
 model UserSessions {
@@ -144,6 +146,7 @@ model PaymentTransactions {
   id            Int               @id @default(autoincrement())
   bankAccountId Int
   chargeId      Int?
+  duesTypeId    Int?
   userId        Int
   status        TransactionStatus @default(PENDING)
   type          TransactionType   @default(DEPOSIT)
@@ -161,7 +164,8 @@ model PaymentTransactions {
 
   depositedBy Users       @relation("depositor", fields: [userId], references: [id], onDelete: SetDefault)
   reviewedBy  Users?      @relation("reviewer", fields: [reviewedById], references: [id], onDelete: SetDefault)
-  charge      Charges?    @relation(fields: [chargeId], references: [id], onDelete: Cascade)
+  charge      Charges?    @relation(fields: [chargeId], references: [id], onDelete: SetDefault)
+  dues        DueTypes?   @relation(fields: [duesTypeId], references: [id], onDelete: SetNull)
   bankAccount BankAcconts @relation(fields: [bankAccountId], references: [id], onDelete: SetDefault)
 }
 
@@ -232,12 +236,13 @@ model Charges {
 }
 
 model Meetings {
-  id         Int      @id @default(autoincrement())
-  title      String
-  meetingUrl String
-  heldAt     DateTime
-  created    DateTime @default(now())
-  updated    DateTime @updatedAt
+  id           Int       @id @default(autoincrement())
+  title        String
+  meetingUrl   String
+  heldAt       DateTime
+  finializedAt DateTime?
+  created      DateTime  @default(now())
+  updated      DateTime  @updatedAt
 
   attendance Attendance[]
   charges    Charges[]
@@ -246,12 +251,30 @@ model Meetings {
 model Attendance {
   id        Int              @id @default(autoincrement())
   meetingId Int
-  status    AttendanceStatus
   userId    Int
-  user      Users            @relation(fields: [userId], references: [id])
-  meeting   Meetings         @relation(fields: [meetingId], references: [id])
+  status    AttendanceStatus
+  joinedAt  DateTime?
+  joinCount Int              @default(0)
   created   DateTime         @default(now())
   updated   DateTime         @updatedAt
+  user      Users            @relation(fields: [userId], references: [id])
+  meeting   Meetings         @relation(fields: [meetingId], references: [id])
 
   @@unique([meetingId, userId])
+}
+
+model DueTypes {
+  id          Int       @id @default(autoincrement())
+  createdById Int?
+  name        String    @unique
+  description String?
+  amount      BigInt // now required, since this is what everyone owes
+  dueDate     DateTime? // optional deadline, for showing "overdue"
+  isActive    Boolean   @default(true)
+  created     DateTime  @default(now())
+  updated     DateTime  @updatedAt
+
+  createdBy Users? @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  payments PaymentTransactions[]
 }

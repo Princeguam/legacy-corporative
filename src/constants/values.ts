@@ -5,3 +5,4 @@ export const kDefaultAllQueryPage = 1;
 export const kDefaultMaxQueryCount = 100;
 export const kDefaultAccessTokenExpiration = 1;
 export const kDefaultRefreshTokenExpiration = 7;
+export const kDefaultMinimumContibutionAmount = 1500000n;

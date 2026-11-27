@@ -1,6 +1,9 @@
 import jwt from "jsonwebtoken";
 import "./bigInt.js";
 import type { $Enums } from "../constants/enums.js";
+import { kDefaultMinimumContibutionAmount } from "../constants/values.js";
+
+export type Range = 3 | 6 | 12;
 
 if (!process.env.JWT_SECRET) {
     throw new Error("JWT SECRET NOT FETCHED");
@@ -136,6 +139,47 @@ export function toId(value: any) {
         return null;
     }
     return id;
+}
+
+export function determineRemainingContribution(
+    period: number,
+    confirmedAmount: bigint,
+    minimumMonthlyAmount: bigint = kDefaultMinimumContibutionAmount,
+) {
+    let noOfMonths = 12n;
+    if (!period) return null;
+
+    if (period === 2026) {
+        noOfMonths = 4n;
+        return minimumMonthlyAmount * noOfMonths - confirmedAmount;
+    }
+
+    return minimumMonthlyAmount * noOfMonths - confirmedAmount;
+}
+
+export function dashboardChartWindow(year: number, months: Range) {
+    let now = new Date();
+
+    const endMonth = year === now.getUTCFullYear() ? now.getUTCMonth() : 11;
+    const startMonth = Math.max(0, endMonth - months + 1);
+
+    return {
+        start: new Date(Date.UTC(year, startMonth, 1)),
+        end: new Date(Date.UTC(year, endMonth, 1)),
+    };
+}
+
+export function getMonthName(date: Date) {
+    return date.toLocaleString("en-NG", {
+        month: "short",
+        year: "numeric",
+        timeZone: "UTC",
+    });
+}
+
+export function monthKey(d: Date) {
+    return d.toISOString().slice(0, 7);
+    // "2026-09"
 }
 
 export * from "./prismaClient.js";

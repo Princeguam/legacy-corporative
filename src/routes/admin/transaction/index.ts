@@ -31,7 +31,7 @@ import AdminTransactionIDRoute from "./[transactionId]/index.js";
 
 const AdminTransactionRoute = express.Router();
 
-type ArrangeBy = "status" | "created";
+type ArrangeBy = "status" | "note" | "created";
 
 type ArrangeOrder = "asc" | "desc";
 
@@ -69,10 +69,13 @@ AdminTransactionRoute.get(
             statuses,
         );
 
+        let types = Object.values($Enums.TransactionType);
+        let selectedTypes = parseEnumList(String(req.query.type), types);
+
         let searchOrderBy: ArrangeBy = "created";
         if (url.searchParams.has("by")) {
             let searchParamValue = url.searchParams.get("by") || "";
-            searchOrderBy = ["status", "address"].includes(searchParamValue)
+            searchOrderBy = ["status", "note"].includes(searchParamValue)
                 ? (searchParamValue as ArrangeBy)
                 : "created";
         }
@@ -104,6 +107,10 @@ AdminTransactionRoute.get(
             let matchingStatuses = statuses.filter((status) =>
                 status.toLowerCase().includes(search.toLowerCase()),
             );
+
+            let matchingTypes = types.filter((type) =>
+                type.toLowerCase().includes(search.toLowerCase()),
+            );
             whereClause.OR = [
                 {
                     note: {
@@ -115,6 +122,10 @@ AdminTransactionRoute.get(
 
             if (matchingStatuses.length > 0) {
                 whereClause.OR.push({ status: { in: matchingStatuses } });
+            }
+
+            if (matchingTypes.length > 0) {
+                whereClause.OR.push({ type: { in: matchingTypes } });
             }
         }
 
